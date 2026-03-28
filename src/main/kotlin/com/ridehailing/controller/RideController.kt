@@ -27,6 +27,13 @@ class RideController(
     return ApiResponse.ok(ride, "Ride created successfully")
   }
 
+  @Operation(summary = "Get available rides for drivers")
+  @GetMapping(value = ["/available"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getAvailableRides(@RequestParam vehicleTypeId: Int): ApiResponse<List<Ride>> {
+    log.info("getAvailableRides - GET /rides/available?vehicleTypeId=$vehicleTypeId")
+    return ApiResponse.ok(rideService.findAvailableRides(vehicleTypeId))
+  }
+
   @Operation(summary = "Get ride status")
   @GetMapping(value = ["/{id}"], produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getRide(@PathVariable id: UUID): ApiResponse<Ride> {

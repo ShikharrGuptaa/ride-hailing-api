@@ -19,4 +19,5 @@ interface PaymentMapper {
     @Param("statusId") statusId: Int,
     @Param("pspReference") pspReference: String?
   ): Int
+  fun findByTripId(@Param("tripId") tripId: UUID): Payment?
 }

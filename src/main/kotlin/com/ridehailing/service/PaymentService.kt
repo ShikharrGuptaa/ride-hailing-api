@@ -97,6 +97,11 @@ class PaymentService(
     return paymentMapper.findById(paymentId)!!
   }
 
+  fun getPaymentByTrip(tripId: UUID): Payment? {
+    log.info("getPaymentByTrip - Fetching payment for trip: $tripId")
+    return paymentMapper.findByTripId(tripId)
+  }
+
   fun getPayment(paymentId: UUID): Payment {
     log.info("getPayment - Fetching payment: $paymentId")
     return paymentMapper.findById(paymentId)

@@ -96,10 +96,7 @@ class RideService(
     // Fetch the inserted ride
     val createdRide = rideMapper.findByIdempotencyKey(idempotencyKey)!!
 
-    // Attempt auto-matching
-    matchDriver(createdRide)
-
-    return rideMapper.findById(createdRide.id!!)!!
+    return createdRide
   }
 
   fun getRide(rideId: UUID): Ride {
@@ -129,24 +126,16 @@ class RideService(
     val ride = rideMapper.findById(rideId)
       ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND)
 
-    if (ride.status?.id != RideStatus.DRIVER_ASSIGNED.id) {
+    if (ride.status?.id != RideStatus.REQUESTED.id) {
       throw ApplicationException(ApplicationExceptionTypes.INVALID_RIDE_STATUS,
-        "Expected DRIVER_ASSIGNED(${RideStatus.DRIVER_ASSIGNED.id}), got ${ride.status?.id}")
+        "Expected REQUESTED(${RideStatus.REQUESTED.id}), got ${ride.status?.id}")
     }
 
-    if (ride.driverId != driverId) {
-      throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_ASSIGNED_TO_DRIVER)
-    }
-
-    // Check driver doesn't have another active ride
-    val activeRide = rideMapper.findActiveByDriverId(driverId)
-    if (activeRide != null && activeRide.id != rideId) {
-      throw ApplicationException(ApplicationExceptionTypes.DRIVER_HAS_ACTIVE_RIDE)
-    }
-
-    val updated = rideMapper.updateStatus(rideId, RideStatus.DRIVER_ACCEPTED.id, RideStatus.DRIVER_ASSIGNED.id)
+    // First driver to accept wins (optimistic lock via expectedStatus)
+    val updated = rideMapper.assignDriver(rideId, driverId, RideStatus.DRIVER_ACCEPTED.id)
     if (updated == 0) {
-      throw ApplicationException(ApplicationExceptionTypes.CONCURRENT_MODIFICATION)
+      throw ApplicationException(ApplicationExceptionTypes.CONCURRENT_MODIFICATION,
+        "Ride already taken by another driver")
     }
 
     // Create trip
@@ -170,6 +159,11 @@ class RideService(
 
     log.info("acceptRide - Ride $rideId accepted by driver $driverId")
     return rideMapper.findById(rideId)!!
+  }
+
+  fun findAvailableRides(vehicleTypeId: Int): List<Ride> {
+    log.info("findAvailableRides - Finding REQUESTED rides for vehicleTypeId: $vehicleTypeId")
+    return rideMapper.findAvailableByVehicleType(vehicleTypeId)
   }
 
   fun getActiveRideForDriver(driverId: UUID): Ride? {

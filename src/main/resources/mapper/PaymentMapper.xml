@@ -45,5 +45,8 @@
       update_date = NOW()
     WHERE id = #{id} AND delete_info IS NULL
   </update>
+  <select id="findByTripId" resultMap="paymentResultMap">
+    SELECT * FROM payments WHERE trip_id = #{tripId} AND delete_info IS NULL LIMIT 1
+  </select>
 
 </mapper>

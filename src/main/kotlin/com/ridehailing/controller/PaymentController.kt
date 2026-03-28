@@ -39,6 +39,13 @@ class PaymentController(
     return ApiResponse.ok(payment, "Payment confirmed")
   }
 
+  @Operation(summary = "Get payment by trip ID")
+  @GetMapping(value = ["/by-trip/{tripId}"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getPaymentByTrip(@PathVariable tripId: UUID): ApiResponse<Payment?> {
+    log.info("getPaymentByTrip - GET /payments/by-trip/$tripId")
+    return ApiResponse.ok(paymentService.getPaymentByTrip(tripId))
+  }
+
   @Operation(summary = "Get payment details")
   @GetMapping(value = ["/{id}"], produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getPayment(@PathVariable id: UUID): ApiResponse<Payment> {
