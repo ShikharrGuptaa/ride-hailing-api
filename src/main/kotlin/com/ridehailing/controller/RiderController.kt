@@ -2,7 +2,9 @@ package com.ridehailing.controller
 
 import com.ridehailing.model.common.ApiResponse
 import com.ridehailing.model.rider.Rider
+import com.ridehailing.model.dto.AuthResponse
 import com.ridehailing.model.dto.CreateRiderRequest
+import com.ridehailing.service.JwtService
 import com.ridehailing.service.RiderService
 import io.swagger.v3.oas.annotations.Operation
 import jakarta.validation.Valid
@@ -14,17 +16,19 @@ import java.util.UUID
 @RestController
 @RequestMapping("/riders")
 class RiderController(
-  private val riderService: RiderService
+  private val riderService: RiderService,
+  private val jwtService: JwtService
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  @Operation(summary = "Register a new rider")
+  @Operation(summary = "Register a new rider (returns JWT token)")
   @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun createRider(@Valid @RequestBody request: CreateRiderRequest): ApiResponse<Rider> {
+  fun createRider(@Valid @RequestBody request: CreateRiderRequest): ApiResponse<AuthResponse<Rider>> {
     log.info("createRider - POST /riders")
     val rider = riderService.createRider(request)
-    return ApiResponse.ok(rider, "Rider registered successfully")
+    val token = jwtService.generateToken(rider.id!!, "RIDER")
+    return ApiResponse.ok(AuthResponse(token, rider), "Rider registered successfully")
   }
 
   @Operation(summary = "Get rider by ID")

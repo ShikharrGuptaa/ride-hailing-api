@@ -5,9 +5,11 @@ import com.ridehailing.model.driver.Driver
 import com.ridehailing.model.driver.DriverCurrentLocation
 import com.ridehailing.model.ride.Ride
 import com.ridehailing.model.dto.AcceptRideRequest
+import com.ridehailing.model.dto.AuthResponse
 import com.ridehailing.model.dto.CreateDriverRequest
 import com.ridehailing.model.dto.UpdateLocationRequest
 import com.ridehailing.service.DriverService
+import com.ridehailing.service.JwtService
 import com.ridehailing.service.RideService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
@@ -23,7 +25,8 @@ import java.util.UUID
 @RequestMapping("/drivers")
 class DriverController(
   private val driverService: DriverService,
-  private val rideService: RideService
+  private val rideService: RideService,
+  private val jwtService: JwtService
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -38,10 +41,11 @@ class DriverController(
     ]
   )
   @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun createDriver(@Valid @RequestBody request: CreateDriverRequest): ApiResponse<Driver> {
+  fun createDriver(@Valid @RequestBody request: CreateDriverRequest): ApiResponse<AuthResponse<Driver>> {
     log.info("createDriver - POST /drivers")
     val driver = driverService.createDriver(request)
-    return ApiResponse.ok(driver, "Driver registered successfully")
+    val token = jwtService.generateToken(driver.id!!, "DRIVER")
+    return ApiResponse.ok(AuthResponse(token, driver), "Driver registered successfully")
   }
 
   @Operation(summary = "Get driver by ID")
