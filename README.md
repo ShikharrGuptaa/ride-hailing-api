@@ -1,16 +1,18 @@
 # Ride Hailing API
 
-Multi-tenant, multi-region ride-hailing platform API built with Kotlin + Spring Boot.
+Multi-tenant, multi-region ride-hailing platform API.
 
 ## Tech Stack
 
 - Kotlin 2.1.10 / Java 21
 - Spring Boot 3.4.2
-- PostgreSQL 18 (UUIDv7 native)
+- PostgreSQL 18 (UUIDv7)
 - MyBatis 3.0.3
-- Redis (caching + real-time driver locations)
-- Flyway (database migrations)
-- SpringDoc OpenAPI (Swagger UI)
+- Redis (caching + driver locations)
+- Flyway (migrations)
+- Razorpay (payments)
+- JWT (authentication)
+- SpringDoc OpenAPI (Swagger)
 
 ## Prerequisites
 
@@ -19,100 +21,83 @@ Multi-tenant, multi-region ride-hailing platform API built with Kotlin + Spring 
 - Redis 7+
 - Maven 3.9+
 
-## Database Setup
+## Setup
 
 ```bash
-# Create the database
-psql -U postgres -c "CREATE DATABASE ride_hailing;"
-```
+# Create database
+psql -U shikhargupta -d postgres -c "CREATE DATABASE ride_hailing;"
 
-Flyway will auto-run migrations on startup.
-
-## Configuration
-
-Environment variables (or use `.env` file):
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| SERVER_PORT | 8080 | Application port |
-| DB_HOST | localhost | PostgreSQL host |
-| DB_PORT | 5432 | PostgreSQL port |
-| DB_NAME | ride_hailing | Database name |
-| DB_USERNAME | postgres | Database user |
-| DB_PASSWORD | postgres | Database password |
-| REDIS_HOST | localhost | Redis host |
-| REDIS_PORT | 6379 | Redis port |
-
-## Build & Run
-
-```bash
 # Build
 mvn clean package
 
 # Run
-java -jar target/ride-hailing-api-1.0.0-SNAPSHOT.jar
-
-# Or run with Maven
 mvn spring-boot:run
 ```
 
+## Configuration
+
+Environment variables (or `.local.env`):
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| SERVER_PORT | 8080 | App port |
+| DB_HOST | localhost | PostgreSQL host |
+| DB_PORT | 5432 | PostgreSQL port |
+| DB_NAME | ride_hailing | Database name |
+| DB_USERNAME | | DB user |
+| DB_PASSWORD | | DB password |
+| REDIS_HOST | localhost | Redis host |
+| REDIS_PORT | 6379 | Redis port |
+| RAZORPAY_KEY_ID | | Razorpay test key |
+| RAZORPAY_KEY_SECRET | | Razorpay test secret |
+| JWT_SECRET | (default) | JWT signing key |
+| JWT_EXPIRATION_HOURS | 24 | Token expiry |
+
 ## API Endpoints
 
-All endpoints are under `/v1` context path.
+All under `/v1` context path. Auth required unless marked Public.
 
-### Core APIs
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | /v1/riders | Public | Register rider (returns JWT) |
+| GET | /v1/riders/{id} | Rider | Get rider |
+| POST | /v1/drivers | Public | Register driver (returns JWT) |
+| GET | /v1/drivers/{id} | Driver | Get driver |
+| POST | /v1/drivers/{id}/status | Driver | Go online/offline |
+| POST | /v1/drivers/{id}/location | Driver | Update location |
+| GET | /v1/drivers/{id}/active-ride | Driver | Get current assigned ride |
+| GET | /v1/rides/available | Public | List available rides |
+| POST | /v1/rides | Rider | Request a ride |
+| GET | /v1/rides/{id} | Auth | Get ride status |
+| POST | /v1/drivers/{id}/accept | Driver | Accept a ride |
+| GET | /v1/trips/{id} | Auth | Get trip |
+| GET | /v1/trips/by-ride/{rideId} | Auth | Get trip by ride |
+| POST | /v1/trips/{id}/end | Driver | End trip + fare calc |
+| POST | /v1/payments | Rider | Create Razorpay order |
+| POST | /v1/payments/{id}/confirm | Rider | Confirm payment |
+| GET | /v1/payments/{id} | Auth | Get payment |
+| GET | /v1/payments/by-trip/{tripId} | Auth | Get payment by trip |
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /v1/rides | Create a ride request |
-| GET | /v1/rides/{id} | Get ride status |
-| POST | /v1/drivers/{id}/location | Update driver location |
-| POST | /v1/drivers/{id}/accept | Accept ride assignment |
-| POST | /v1/trips/{id}/end | End trip + fare calculation |
-| POST | /v1/payments | Trigger payment flow |
-
-### Seed Data (non-prod only)
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | /v1/seed/drivers | Seed test drivers |
-| POST | /v1/seed/riders | Seed test riders |
-
-### Docs & Health
+## Documentation
 
 - Swagger UI: http://localhost:8080/v1/swagger-ui.html
 - API Docs: http://localhost:8080/v1/api-docs
 - Health: http://localhost:8080/v1/actuator/health
+- Architecture: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 
-## Database Architecture
+## Testing
 
-- `type_group` / `type` — IdName lookup pattern for all statuses and enums
-- `tenants` — Multi-tenant support
-- `drivers` — Driver profiles (static data)
-- `driver_current_locations` — Hot 1:1 table for real-time driver position
-- `driver_locations` — Append-only location history
-- `riders` — Rider profiles
-- `rides` — Ride lifecycle (request → match → accept → complete)
-- `trips` — Trip execution (start → end, fare calculation)
-- `payments` — Payment processing with PSP integration
-
-All entity tables include `tenant_id`, `region_id`, `add_date`, `update_date`, and `delete_info` (soft delete via JSONB).
-
-UUIDv7 used for all primary keys (time-ordered, B-tree friendly).
-
-## Project Structure
-
+```bash
+mvn test
 ```
-src/main/kotlin/com/ridehailing/
-├── RideHailingApplication.kt
-├── config/          # Redis, WebSocket, exception handling
-├── controller/      # REST controllers
-├── mapper/          # MyBatis mapper interfaces
-├── model/           # Entities, DTOs, enums, IdName
-└── service/         # Business logic
 
-src/main/resources/
-├── application.yml
-├── db/migration/    # Flyway SQL migrations
-└── mapper/          # MyBatis XML mappers
-```
+24 unit tests covering FareService, DriverService, RideService, TripService, IdempotencyUtil.
+
+## Frontend
+
+Separate repo: [ride-hailing-ui](https://github.com/ShikharrGuptaa/ride-hailing-ui)
+
+- React + Vite
+- Rider view: `/rider` — register, request ride, track, pay via Razorpay
+- Driver view: `/driver` — register, go online, accept rides, end trips
+- Real-time polling, session persistence via localStorage
