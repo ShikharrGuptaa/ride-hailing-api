@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ridehailing.mapper.TenantMapper">
+
+  <select id="findIdByCode" resultType="java.util.UUID">
+    SELECT id FROM tenants WHERE code = #{code} AND delete_info IS NULL
+  </select>
+
+</mapper>

@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ridehailing.mapper.DriverMapper">
+
+  <resultMap id="driverResultMap" type="com.ridehailing.model.Driver">
+    <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="regionId" column="region_id"/>
+    <result property="name" column="name"/>
+    <result property="phone" column="phone"/>
+    <result property="vehicleTypeId" column="vehicle_type_id"/>
+    <result property="licensePlate" column="license_plate"/>
+    <result property="statusId" column="status_id"/>
+    <result property="rating" column="rating"/>
+    <result property="addDate" column="add_date"/>
+    <result property="updateDate" column="update_date"/>
+    <result property="deleteInfo" column="delete_info"/>
+  </resultMap>
+
+  <resultMap id="currentLocationResultMap" type="com.ridehailing.model.DriverCurrentLocation">
+    <id property="driverId" column="driver_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="lat" column="lat"/>
+    <result property="lng" column="lng"/>
+    <result property="updateDate" column="update_date"/>
+  </resultMap>
+
+  <insert id="insert" parameterType="com.ridehailing.model.Driver">
+    INSERT INTO drivers (tenant_id, region_id, name, phone, vehicle_type_id, license_plate, status_id, add_date)
+    VALUES (#{tenantId}, #{regionId}, #{name}, #{phone}, #{vehicleTypeId}, #{licensePlate}, #{statusId}, NOW())
+  </insert>
+
+  <select id="findById" resultMap="driverResultMap">
+    SELECT * FROM drivers WHERE id = #{id} AND delete_info IS NULL
+  </select>
+
+  <select id="findByPhoneAndTenant" resultMap="driverResultMap">
+    SELECT * FROM drivers WHERE phone = #{phone} AND tenant_id = #{tenantId} AND delete_info IS NULL
+  </select>
+
+  <update id="updateStatus">
+    UPDATE drivers SET status_id = #{statusId}, update_date = NOW()
+    WHERE id = #{id} AND delete_info IS NULL
+  </update>
+
+  <insert id="upsertCurrentLocation" parameterType="com.ridehailing.model.DriverCurrentLocation">
+    INSERT INTO driver_current_locations (driver_id, lat, lng, update_date)
+    VALUES (#{driverId}, #{lat}, #{lng}, NOW())
+    ON CONFLICT (driver_id)
+    DO UPDATE SET lat = #{lat}, lng = #{lng}, update_date = NOW()
+  </insert>
+
+  <select id="findCurrentLocation" resultMap="currentLocationResultMap">
+    SELECT * FROM driver_current_locations WHERE driver_id = #{driverId}
+  </select>
+
+  <select id="findNearbyAvailable" resultMap="driverResultMap">
+    SELECT d.*,
+      (6371 * acos(
+        cos(radians(#{lat})) * cos(radians(dcl.lat)) *
+        cos(radians(dcl.lng) - radians(#{lng})) +
+        sin(radians(#{lat})) * sin(radians(dcl.lat))
+      )) AS distance_km
+    FROM drivers d
+    INNER JOIN driver_current_locations dcl ON d.id = dcl.driver_id
+    WHERE d.status_id = 101
+      AND d.vehicle_type_id = #{vehicleTypeId}
+      AND d.delete_info IS NULL
+      AND (6371 * acos(
+        cos(radians(#{lat})) * cos(radians(dcl.lat)) *
+        cos(radians(dcl.lng) - radians(#{lng})) +
+        sin(radians(#{lat})) * sin(radians(dcl.lat))
+      )) &lt;= #{radiusKm}
+    ORDER BY distance_km ASC
+    LIMIT #{limit}
+  </select>
+
+  <insert id="insertLocation" parameterType="com.ridehailing.model.DriverLocation">
+    INSERT INTO driver_locations (driver_id, lat, lng, recorded_at)
+    VALUES (#{driverId}, #{lat}, #{lng}, NOW())
+  </insert>
+
+</mapper>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ridehailing.mapper.RiderMapper">
+
+  <resultMap id="riderResultMap" type="com.ridehailing.model.Rider">
+    <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="regionId" column="region_id"/>
+    <result property="name" column="name"/>
+    <result property="phone" column="phone"/>
+    <result property="email" column="email"/>
+    <result property="rating" column="rating"/>
+    <result property="addDate" column="add_date"/>
+    <result property="updateDate" column="update_date"/>
+    <result property="deleteInfo" column="delete_info"/>
+  </resultMap>
+
+  <insert id="insert" parameterType="com.ridehailing.model.Rider">
+    INSERT INTO riders (tenant_id, region_id, name, phone, email, add_date)
+    VALUES (#{tenantId}, #{regionId}, #{name}, #{phone}, #{email}, NOW())
+  </insert>
+
+  <select id="findById" resultMap="riderResultMap">
+    SELECT * FROM riders WHERE id = #{id} AND delete_info IS NULL
+  </select>
+
+  <select id="findByPhoneAndTenant" resultMap="riderResultMap">
+    SELECT * FROM riders WHERE phone = #{phone} AND tenant_id = #{tenantId} AND delete_info IS NULL
+  </select>
+
+</mapper>

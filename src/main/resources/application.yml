@@ -27,6 +27,7 @@ spring:
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.ridehailing.model
+  type-handlers-package: com.ridehailing.config
   configuration:
     map-underscore-to-camel-case: true
     default-enum-type-handler: org.apache.ibatis.type.EnumTypeHandler
