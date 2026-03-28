@@ -18,6 +18,8 @@ interface DriverMapper {
 
   fun updateStatus(@Param("id") id: UUID, @Param("statusId") statusId: Int): Int
 
+  fun updateVehicleType(@Param("id") id: UUID, @Param("vehicleTypeId") vehicleTypeId: Int, @Param("licensePlate") licensePlate: String?): Int
+
   fun upsertCurrentLocation(location: DriverCurrentLocation)
 
   fun findCurrentLocation(@Param("driverId") driverId: UUID): DriverCurrentLocation?

@@ -104,4 +104,13 @@ class DriverService(
     redisTemplate.delete("${Constant.Redis.DRIVER_CACHE_KEY}$driverId")
     return driverMapper.updateStatus(driverId, statusId)
   }
+
+  fun updateVehicleType(driverId: UUID, vehicleTypeId: Int, licensePlate: String?): Driver {
+    log.info("updateVehicleType - Driver $driverId switching to vehicleTypeId=$vehicleTypeId")
+    VehicleType.entries.firstOrNull { it.id == vehicleTypeId }
+      ?: throw ApplicationException(ApplicationExceptionTypes.INVALID_TYPE_ID, "Invalid vehicleTypeId: $vehicleTypeId")
+    driverMapper.updateVehicleType(driverId, vehicleTypeId, licensePlate)
+    redisTemplate.delete("${Constant.Redis.DRIVER_CACHE_KEY}$driverId")
+    return findById(driverId)
+  }
 }

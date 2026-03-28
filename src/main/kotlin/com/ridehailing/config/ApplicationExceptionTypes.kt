@@ -21,4 +21,5 @@ object ApplicationExceptionTypes {
   val INVALID_TYPE_ID = Triple(16, HttpStatus.BAD_REQUEST, "Invalid type ID for the given group")
   val GENERIC_EXCEPTION = Triple(99, HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later.")
   val DEFAULT_TENANT_NOT_FOUND = Triple(100, HttpStatus.INTERNAL_SERVER_ERROR, "Default tenant not found")
+  val UNAUTHORIZED = Triple(101, HttpStatus.FORBIDDEN, "Unauthorized access")
 }

@@ -107,6 +107,18 @@ class DriverController(
     return ApiResponse.ok("updated", "Driver status updated")
   }
 
+  @Operation(summary = "Switch driver vehicle type")
+  @PostMapping(value = ["/{id}/vehicle"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateVehicleType(
+    @PathVariable id: UUID,
+    @RequestBody body: Map<String, Any>
+  ): ApiResponse<Driver> {
+    log.info("updateVehicleType - POST /drivers/$id/vehicle")
+    val vehicleTypeId = (body["vehicleTypeId"] as Number).toInt()
+    val licensePlate = body["licensePlate"] as? String
+    return ApiResponse.ok(driverService.updateVehicleType(id, vehicleTypeId, licensePlate), "Vehicle type updated")
+  }
+
   @Operation(summary = "Get active ride assigned to driver")
   @GetMapping(value = ["/{id}/active-ride"], produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getActiveRide(@PathVariable id: UUID): ApiResponse<Ride?> {

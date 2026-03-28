@@ -49,6 +49,13 @@
     WHERE id = #{id} AND delete_info IS NULL
   </update>
 
+  <update id="updateVehicleType">
+    UPDATE drivers SET vehicle_type_id = #{vehicleTypeId}
+    <if test="licensePlate != null">, license_plate = #{licensePlate}</if>
+    , update_date = NOW()
+    WHERE id = #{id} AND delete_info IS NULL
+  </update>
+
   <insert id="upsertCurrentLocation" parameterType="com.ridehailing.model.driver.DriverCurrentLocation">
     INSERT INTO driver_current_locations (driver_id, lat, lng, update_date)
     VALUES (#{driverId}, #{lat}, #{lng}, NOW())

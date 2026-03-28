@@ -181,6 +181,41 @@ class RideService(
 
   fun getFareService(): FareService = fareService
 
+  @Transactional
+  fun cancelRide(rideId: UUID, riderId: UUID): Ride {
+    log.info("cancelRide - Rider $riderId cancelling ride $rideId")
+
+    val ride = rideMapper.findById(rideId)
+      ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND)
+
+    if (ride.riderId != riderId) {
+      throw ApplicationException(ApplicationExceptionTypes.UNAUTHORIZED, "Rider does not own this ride")
+    }
+
+    // Can only cancel before trip is in progress
+    if (ride.status?.id!! >= RideStatus.IN_PROGRESS.id) {
+      throw ApplicationException(ApplicationExceptionTypes.INVALID_RIDE_STATUS,
+        "Cannot cancel ride in status ${ride.status.id}")
+    }
+
+    val updated = rideMapper.updateStatus(rideId, RideStatus.CANCELLED.id, ride.status.id)
+    if (updated == 0) {
+      throw ApplicationException(ApplicationExceptionTypes.CONCURRENT_MODIFICATION, "Ride status changed concurrently")
+    }
+
+    // Free up driver if one was assigned
+    if (ride.driverId != null) {
+      driverService.updateStatus(ride.driverId, DriverStatus.ONLINE.id)
+    }
+
+    redisTemplate.delete("${Constant.Redis.RIDE_CACHE_KEY}$rideId")
+
+    val cancelledRide = rideMapper.findById(rideId)!!
+    rideEventService.broadcastRideUpdate(cancelledRide)
+    log.info("cancelRide - Ride $rideId cancelled successfully")
+    return cancelledRide
+  }
+
   fun getDriverEarnings(driverId: UUID): Map<String, Any>? {
     log.info("getDriverEarnings - Fetching earnings for driver: $driverId")
     return tripMapper.getDriverEarnings(driverId)

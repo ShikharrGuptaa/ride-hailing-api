@@ -65,4 +65,12 @@ class RideController(
     log.info("getRide - GET /rides/$id")
     return ApiResponse.ok(rideService.getRide(id))
   }
+
+  @Operation(summary = "Cancel a ride")
+  @PostMapping(value = ["/{id}/cancel"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun cancelRide(@PathVariable id: UUID, @RequestBody body: Map<String, String>): ApiResponse<Ride> {
+    log.info("cancelRide - POST /rides/$id/cancel")
+    val riderId = UUID.fromString(body["riderId"])
+    return ApiResponse.ok(rideService.cancelRide(id, riderId), "Ride cancelled successfully")
+  }
 }
