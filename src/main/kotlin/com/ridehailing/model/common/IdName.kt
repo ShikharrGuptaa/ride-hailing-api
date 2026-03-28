@@ -1,4 +1,4 @@
-package com.ridehailing.model
+package com.ridehailing.model.common
 
 data class IdName(
   var id: Int? = null,

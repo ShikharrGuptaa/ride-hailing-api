@@ -1,11 +1,14 @@
 package com.ridehailing.controller
 
-import com.ridehailing.model.ApiResponse
-import com.ridehailing.model.Driver
-import com.ridehailing.model.DriverCurrentLocation
+import com.ridehailing.model.common.ApiResponse
+import com.ridehailing.model.driver.Driver
+import com.ridehailing.model.driver.DriverCurrentLocation
+import com.ridehailing.model.ride.Ride
+import com.ridehailing.model.dto.AcceptRideRequest
 import com.ridehailing.model.dto.CreateDriverRequest
 import com.ridehailing.model.dto.UpdateLocationRequest
 import com.ridehailing.service.DriverService
+import com.ridehailing.service.RideService
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
@@ -19,7 +22,8 @@ import java.util.UUID
 @RestController
 @RequestMapping("/drivers")
 class DriverController(
-  private val driverService: DriverService
+  private val driverService: DriverService,
+  private val rideService: RideService
 ) {
 
   private val log = LoggerFactory.getLogger(this::class.java)
@@ -56,5 +60,16 @@ class DriverController(
     log.info("updateLocation - POST /drivers/$id/location")
     val location = driverService.updateLocation(id, request.lat, request.lng)
     return ApiResponse.ok(location, "Location updated")
+  }
+
+  @Operation(summary = "Accept a ride assignment")
+  @PostMapping(value = ["/{id}/accept"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun acceptRide(
+    @PathVariable id: UUID,
+    @Valid @RequestBody request: AcceptRideRequest
+  ): ApiResponse<Ride> {
+    log.info("acceptRide - POST /drivers/$id/accept for ride: ${request.rideId}")
+    val ride = rideService.acceptRide(id, request.rideId)
+    return ApiResponse.ok(ride, "Ride accepted")
   }
 }

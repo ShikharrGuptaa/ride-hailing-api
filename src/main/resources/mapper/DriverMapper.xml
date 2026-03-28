@@ -3,31 +3,37 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ridehailing.mapper.DriverMapper">
 
-  <resultMap id="driverResultMap" type="com.ridehailing.model.Driver">
+  <resultMap id="driverResultMap" type="com.ridehailing.model.driver.Driver">
     <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
     <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
-    <result property="regionId" column="region_id"/>
     <result property="name" column="name"/>
     <result property="phone" column="phone"/>
-    <result property="vehicleTypeId" column="vehicle_type_id"/>
     <result property="licensePlate" column="license_plate"/>
-    <result property="statusId" column="status_id"/>
     <result property="rating" column="rating"/>
     <result property="addDate" column="add_date"/>
     <result property="updateDate" column="update_date"/>
     <result property="deleteInfo" column="delete_info"/>
+    <association property="region" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="region_id"/>
+    </association>
+    <association property="vehicleType" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="vehicle_type_id"/>
+    </association>
+    <association property="status" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="status_id"/>
+    </association>
   </resultMap>
 
-  <resultMap id="currentLocationResultMap" type="com.ridehailing.model.DriverCurrentLocation">
+  <resultMap id="currentLocationResultMap" type="com.ridehailing.model.driver.DriverCurrentLocation">
     <id property="driverId" column="driver_id" javaType="java.util.UUID" jdbcType="OTHER"/>
     <result property="lat" column="lat"/>
     <result property="lng" column="lng"/>
     <result property="updateDate" column="update_date"/>
   </resultMap>
 
-  <insert id="insert" parameterType="com.ridehailing.model.Driver">
+  <insert id="insert" parameterType="com.ridehailing.model.driver.Driver">
     INSERT INTO drivers (tenant_id, region_id, name, phone, vehicle_type_id, license_plate, status_id, add_date)
-    VALUES (#{tenantId}, #{regionId}, #{name}, #{phone}, #{vehicleTypeId}, #{licensePlate}, #{statusId}, NOW())
+    VALUES (#{tenantId}, #{region.id}, #{name}, #{phone}, #{vehicleType.id}, #{licensePlate}, #{status.id}, NOW())
   </insert>
 
   <select id="findById" resultMap="driverResultMap">
@@ -43,7 +49,7 @@
     WHERE id = #{id} AND delete_info IS NULL
   </update>
 
-  <insert id="upsertCurrentLocation" parameterType="com.ridehailing.model.DriverCurrentLocation">
+  <insert id="upsertCurrentLocation" parameterType="com.ridehailing.model.driver.DriverCurrentLocation">
     INSERT INTO driver_current_locations (driver_id, lat, lng, update_date)
     VALUES (#{driverId}, #{lat}, #{lng}, NOW())
     ON CONFLICT (driver_id)
@@ -75,7 +81,7 @@
     LIMIT #{limit}
   </select>
 
-  <insert id="insertLocation" parameterType="com.ridehailing.model.DriverLocation">
+  <insert id="insertLocation" parameterType="com.ridehailing.model.driver.DriverLocation">
     INSERT INTO driver_locations (driver_id, lat, lng, recorded_at)
     VALUES (#{driverId}, #{lat}, #{lng}, NOW())
   </insert>

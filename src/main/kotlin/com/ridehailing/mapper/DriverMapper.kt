@@ -1,8 +1,8 @@
 package com.ridehailing.mapper
 
-import com.ridehailing.model.Driver
-import com.ridehailing.model.DriverCurrentLocation
-import com.ridehailing.model.DriverLocation
+import com.ridehailing.model.driver.Driver
+import com.ridehailing.model.driver.DriverCurrentLocation
+import com.ridehailing.model.driver.DriverLocation
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import java.util.UUID

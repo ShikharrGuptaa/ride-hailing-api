@@ -3,7 +3,14 @@ package com.ridehailing.service
 import com.ridehailing.config.ApplicationExceptionTypes
 import com.ridehailing.config.Constant
 import com.ridehailing.mapper.DriverMapper
-import com.ridehailing.model.*
+import com.ridehailing.model.common.ApplicationException
+import com.ridehailing.model.common.IdName
+import com.ridehailing.model.driver.Driver
+import com.ridehailing.model.driver.DriverCurrentLocation
+import com.ridehailing.model.driver.DriverLocation
+import com.ridehailing.model.enums.DriverStatus
+import com.ridehailing.model.enums.Region
+import com.ridehailing.model.enums.VehicleType
 import com.ridehailing.model.dto.CreateDriverRequest
 import org.slf4j.LoggerFactory
 import org.springframework.data.redis.core.RedisTemplate
@@ -40,12 +47,12 @@ class DriverService(
 
     val driver = Driver(
       tenantId = tenantId,
-      regionId = request.regionId,
+      region = request.regionId?.let { IdName(it) },
       name = request.name,
       phone = request.phone,
-      vehicleTypeId = request.vehicleTypeId,
+      vehicleType = IdName(request.vehicleTypeId),
       licensePlate = request.licensePlate,
-      statusId = DriverStatus.OFFLINE.id
+      status = IdName(DriverStatus.OFFLINE.id)
     )
 
     driverMapper.insert(driver)

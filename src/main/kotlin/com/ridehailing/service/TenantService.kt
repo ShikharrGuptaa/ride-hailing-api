@@ -3,7 +3,7 @@ package com.ridehailing.service
 import com.ridehailing.config.ApplicationExceptionTypes
 import com.ridehailing.config.Constant
 import com.ridehailing.mapper.TenantMapper
-import com.ridehailing.model.ApplicationException
+import com.ridehailing.model.common.ApplicationException
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import java.util.UUID

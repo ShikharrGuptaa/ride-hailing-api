@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ridehailing.mapper.RideMapper">
+
+  <resultMap id="rideResultMap" type="com.ridehailing.model.ride.Ride">
+    <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="riderId" column="rider_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="driverId" column="driver_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="pickupLat" column="pickup_lat"/>
+    <result property="pickupLng" column="pickup_lng"/>
+    <result property="pickupAddress" column="pickup_address"/>
+    <result property="destinationLat" column="destination_lat"/>
+    <result property="destinationLng" column="destination_lng"/>
+    <result property="destinationAddress" column="destination_address"/>
+    <result property="estimatedFare" column="estimated_fare"/>
+    <result property="surgeMultiplier" column="surge_multiplier"/>
+    <result property="idempotencyKey" column="idempotency_key"/>
+    <result property="requestedAt" column="requested_at"/>
+    <result property="matchedAt" column="matched_at"/>
+    <result property="startedAt" column="started_at"/>
+    <result property="completedAt" column="completed_at"/>
+    <result property="cancelledAt" column="cancelled_at"/>
+    <result property="addDate" column="add_date"/>
+    <result property="updateDate" column="update_date"/>
+    <result property="deleteInfo" column="delete_info"/>
+    <association property="region" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="region_id"/>
+    </association>
+    <association property="status" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="status_id"/>
+    </association>
+    <association property="vehicleType" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="vehicle_type_id"/>
+    </association>
+  </resultMap>
+
+  <insert id="insert" parameterType="com.ridehailing.model.ride.Ride">
+    INSERT INTO rides (tenant_id, region_id, rider_id, status_id, pickup_lat, pickup_lng, pickup_address,
+      destination_lat, destination_lng, destination_address, vehicle_type_id,
+      estimated_fare, surge_multiplier, idempotency_key, requested_at, add_date)
+    VALUES (#{tenantId}, #{region.id}, #{riderId}, #{status.id}, #{pickupLat}, #{pickupLng}, #{pickupAddress},
+      #{destinationLat}, #{destinationLng}, #{destinationAddress}, #{vehicleType.id},
+      #{estimatedFare}, #{surgeMultiplier}, #{idempotencyKey}, NOW(), NOW())
+  </insert>
+
+  <select id="findById" resultMap="rideResultMap">
+    SELECT * FROM rides WHERE id = #{id} AND delete_info IS NULL
+  </select>
+
+  <select id="findByIdempotencyKey" resultMap="rideResultMap">
+    SELECT * FROM rides WHERE idempotency_key = #{idempotencyKey} AND delete_info IS NULL
+  </select>
+
+  <update id="updateStatus">
+    UPDATE rides SET status_id = #{statusId}, update_date = NOW()
+    <if test="statusId == 206">
+      , completed_at = NOW()
+    </if>
+    <if test="statusId == 207">
+      , cancelled_at = NOW()
+    </if>
+    <if test="statusId == 205">
+      , started_at = NOW()
+    </if>
+    WHERE id = #{id} AND delete_info IS NULL
+    <if test="expectedStatusId != null">
+      AND status_id = #{expectedStatusId}
+    </if>
+  </update>
+
+  <update id="assignDriver">
+    UPDATE rides
+    SET driver_id = #{driverId}, status_id = #{statusId}, matched_at = NOW(), update_date = NOW()
+    WHERE id = #{id} AND status_id = 201 AND delete_info IS NULL
+  </update>
+
+  <select id="findActiveByDriverId" resultMap="rideResultMap">
+    SELECT * FROM rides
+    WHERE driver_id = #{driverId}
+      AND status_id IN (203, 204, 205)
+      AND delete_info IS NULL
+    LIMIT 1
+  </select>
+
+</mapper>

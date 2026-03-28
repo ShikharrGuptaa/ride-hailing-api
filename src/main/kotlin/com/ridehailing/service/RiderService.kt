@@ -2,8 +2,9 @@ package com.ridehailing.service
 
 import com.ridehailing.config.ApplicationExceptionTypes
 import com.ridehailing.mapper.RiderMapper
-import com.ridehailing.model.ApplicationException
-import com.ridehailing.model.Rider
+import com.ridehailing.model.common.ApplicationException
+import com.ridehailing.model.common.IdName
+import com.ridehailing.model.rider.Rider
 import com.ridehailing.model.dto.CreateRiderRequest
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -29,7 +30,7 @@ class RiderService(
 
     val rider = Rider(
       tenantId = tenantId,
-      regionId = request.regionId,
+      region = request.regionId?.let { IdName(it) },
       name = request.name,
       phone = request.phone,
       email = request.email

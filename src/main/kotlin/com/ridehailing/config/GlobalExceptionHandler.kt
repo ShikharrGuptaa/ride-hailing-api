@@ -1,7 +1,7 @@
 package com.ridehailing.config
 
-import com.ridehailing.model.ApiResponse
-import com.ridehailing.model.ApplicationException
+import com.ridehailing.model.common.ApiResponse
+import com.ridehailing.model.common.ApplicationException
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity

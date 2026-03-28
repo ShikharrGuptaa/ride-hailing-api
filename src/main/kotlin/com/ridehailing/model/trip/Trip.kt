@@ -1,5 +1,7 @@
-package com.ridehailing.model
+package com.ridehailing.model.trip
 
+import com.ridehailing.model.common.IdName
+import com.ridehailing.model.enums.TripStatus
 import java.math.BigDecimal
 import java.time.OffsetDateTime
 import java.util.UUID
@@ -7,11 +9,11 @@ import java.util.UUID
 data class Trip(
   val id: UUID? = null,
   val tenantId: UUID,
-  val regionId: Int? = null,
+  val region: IdName? = null,
   val rideId: UUID,
   val driverId: UUID,
   val riderId: UUID,
-  val statusId: Int = TripStatus.IN_PROGRESS.id,
+  val status: IdName? = IdName(TripStatus.IN_PROGRESS.id),
   val startLat: Double,
   val startLng: Double,
   val endLat: Double? = null,
@@ -27,29 +29,5 @@ data class Trip(
   val endedAt: OffsetDateTime? = null,
   val addDate: OffsetDateTime? = null,
   val updateDate: OffsetDateTime? = null,
-  val deleteInfo: String? = null,
-)
-
-data class Payment(
-  val id: UUID? = null,
-  val tenantId: UUID,
-  val tripId: UUID,
-  val riderId: UUID,
-  val amount: BigDecimal,
-  val currency: String = "INR",
-  val statusId: Int = PaymentStatus.PENDING.id,
-  val paymentMethodId: Int,
-  val pspReference: String? = null,
-  val idempotencyKey: String? = null,
-  val addDate: OffsetDateTime? = null,
-  val updateDate: OffsetDateTime? = null,
   val deleteInfo: String? = null
-)
-
-data class DriverLocation(
-  val id: Long? = null,
-  val driverId: UUID,
-  val lat: Double,
-  val lng: Double,
-  val recordedAt: OffsetDateTime? = null
 )

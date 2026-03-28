@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ridehailing.mapper.TripMapper">
+
+  <resultMap id="tripResultMap" type="com.ridehailing.model.trip.Trip">
+    <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="rideId" column="ride_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="driverId" column="driver_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="riderId" column="rider_id" javaType="java.util.UUID" jdbcType="OTHER"/>
+    <result property="startLat" column="start_lat"/>
+    <result property="startLng" column="start_lng"/>
+    <result property="endLat" column="end_lat"/>
+    <result property="endLng" column="end_lng"/>
+    <result property="distanceKm" column="distance_km"/>
+    <result property="durationMinutes" column="duration_minutes"/>
+    <result property="baseFare" column="base_fare"/>
+    <result property="distanceFare" column="distance_fare"/>
+    <result property="timeFare" column="time_fare"/>
+    <result property="surgeMultiplier" column="surge_multiplier"/>
+    <result property="totalFare" column="total_fare"/>
+    <result property="startedAt" column="started_at"/>
+    <result property="endedAt" column="ended_at"/>
+    <result property="addDate" column="add_date"/>
+    <result property="updateDate" column="update_date"/>
+    <result property="deleteInfo" column="delete_info"/>
+    <association property="region" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="region_id"/>
+    </association>
+    <association property="status" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="status_id"/>
+    </association>
+  </resultMap>
+
+  <insert id="insert" parameterType="com.ridehailing.model.trip.Trip">
+    INSERT INTO trips (tenant_id, region_id, ride_id, driver_id, rider_id, status_id,
+      start_lat, start_lng, surge_multiplier, started_at, add_date)
+    VALUES (#{tenantId}, #{region.id}, #{rideId}, #{driverId}, #{riderId}, #{status.id},
+      #{startLat}, #{startLng}, #{surgeMultiplier}, NOW(), NOW())
+  </insert>
+
+  <select id="findById" resultMap="tripResultMap">
+    SELECT * FROM trips WHERE id = #{id} AND delete_info IS NULL
+  </select>
+
+  <select id="findByRideId" resultMap="tripResultMap">
+    SELECT * FROM trips WHERE ride_id = #{rideId} AND delete_info IS NULL
+  </select>
+
+  <update id="endTrip">
+    UPDATE trips
+    SET status_id = 303,
+      end_lat = #{endLat}, end_lng = #{endLng},
+      distance_km = #{distanceKm}, duration_minutes = #{durationMinutes},
+      base_fare = #{baseFare}, distance_fare = #{distanceFare},
+      time_fare = #{timeFare}, total_fare = #{totalFare},
+      ended_at = NOW(), update_date = NOW()
+    WHERE id = #{id} AND status_id = 301 AND delete_info IS NULL
+  </update>
+
+  <update id="updateStatus">
+    UPDATE trips SET status_id = #{statusId}, update_date = NOW()
+    WHERE id = #{id} AND delete_info IS NULL
+  </update>
+
+</mapper>

@@ -1,7 +1,7 @@
 package com.ridehailing.controller
 
-import com.ridehailing.model.ApiResponse
-import com.ridehailing.model.Rider
+import com.ridehailing.model.common.ApiResponse
+import com.ridehailing.model.rider.Rider
 import com.ridehailing.model.dto.CreateRiderRequest
 import com.ridehailing.service.RiderService
 import io.swagger.v3.oas.annotations.Operation

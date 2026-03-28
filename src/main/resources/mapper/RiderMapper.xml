@@ -3,10 +3,9 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ridehailing.mapper.RiderMapper">
 
-  <resultMap id="riderResultMap" type="com.ridehailing.model.Rider">
+  <resultMap id="riderResultMap" type="com.ridehailing.model.rider.Rider">
     <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
     <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
-    <result property="regionId" column="region_id"/>
     <result property="name" column="name"/>
     <result property="phone" column="phone"/>
     <result property="email" column="email"/>
@@ -14,11 +13,14 @@
     <result property="addDate" column="add_date"/>
     <result property="updateDate" column="update_date"/>
     <result property="deleteInfo" column="delete_info"/>
+    <association property="region" javaType="com.ridehailing.model.common.IdName">
+      <result property="id" column="region_id"/>
+    </association>
   </resultMap>
 
-  <insert id="insert" parameterType="com.ridehailing.model.Rider">
+  <insert id="insert" parameterType="com.ridehailing.model.rider.Rider">
     INSERT INTO riders (tenant_id, region_id, name, phone, email, add_date)
-    VALUES (#{tenantId}, #{regionId}, #{name}, #{phone}, #{email}, NOW())
+    VALUES (#{tenantId}, #{region.id}, #{name}, #{phone}, #{email}, NOW())
   </insert>
 
   <select id="findById" resultMap="riderResultMap">

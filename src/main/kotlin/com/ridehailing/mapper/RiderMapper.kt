@@ -1,6 +1,6 @@
 package com.ridehailing.mapper
 
-import com.ridehailing.model.Rider
+import com.ridehailing.model.rider.Rider
 import org.apache.ibatis.annotations.Mapper
 import org.apache.ibatis.annotations.Param
 import java.util.UUID
