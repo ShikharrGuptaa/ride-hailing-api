@@ -83,4 +83,12 @@ class DriverController(
     driverService.updateStatus(id, request.statusId)
     return ApiResponse.ok("updated", "Driver status updated")
   }
+
+  @Operation(summary = "Get active ride assigned to driver")
+  @GetMapping(value = ["/{id}/active-ride"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getActiveRide(@PathVariable id: UUID): ApiResponse<Ride?> {
+    log.debug("getActiveRide - GET /drivers/$id/active-ride")
+    val ride = rideService.getActiveRideForDriver(id)
+    return ApiResponse.ok(ride)
+  }
 }

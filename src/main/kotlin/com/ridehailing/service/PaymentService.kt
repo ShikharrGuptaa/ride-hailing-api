@@ -15,6 +15,7 @@ import com.ridehailing.util.IdempotencyUtil
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
 @Service
 class PaymentService(
@@ -30,7 +31,6 @@ class PaymentService(
   fun createPayment(request: CreatePaymentRequest): Payment {
     log.info("createPayment - Creating payment for trip: ${request.tripId}")
 
-    // Validate payment method
     PaymentMethod.entries.firstOrNull { it.id == request.paymentMethodId }
       ?: throw ApplicationException(ApplicationExceptionTypes.INVALID_TYPE_ID, "Invalid paymentMethodId: ${request.paymentMethodId}")
 
@@ -46,10 +46,8 @@ class PaymentService(
       throw ApplicationException(ApplicationExceptionTypes.TRIP_FARE_NOT_CALCULATED)
     }
 
-    // Server-generated idempotency key
     val idempotencyKey = IdempotencyUtil.generateKey(request.tripId, request.paymentMethodId)
 
-    // Check for duplicate
     val existing = paymentMapper.findByIdempotencyKey(idempotencyKey)
     if (existing != null) {
       log.info("createPayment - Duplicate payment detected, returning existing: ${existing.id}")
@@ -58,6 +56,13 @@ class PaymentService(
 
     val tenantId = tenantService.getDefaultTenantId()
 
+    // Create Razorpay order first
+    val orderResponse = paymentGateway.createOrder(
+      amount = trip.totalFare,
+      currency = "INR",
+      receiptId = idempotencyKey.take(40)
+    )
+
     val payment = Payment(
       tenantId = tenantId,
       tripId = request.tripId,
@@ -65,47 +70,36 @@ class PaymentService(
       amount = trip.totalFare,
       status = IdName(PaymentStatus.PENDING.id),
       paymentMethod = IdName(request.paymentMethodId),
+      pspReference = orderResponse.pspReference,
       idempotencyKey = idempotencyKey
     )
 
     paymentMapper.insert(payment)
-    log.info("createPayment - Payment record created, amount: ${payment.amount}")
+    log.info("createPayment - Payment created with Razorpay order: ${orderResponse.pspReference}, amount: ${payment.amount}")
 
-    // Fetch the inserted payment
-    val createdPayment = paymentMapper.findByIdempotencyKey(idempotencyKey)!!
-
-    // Process via Razorpay
-    processPayment(createdPayment)
-
-    return paymentMapper.findById(createdPayment.id!!)!!
+    return paymentMapper.findByIdempotencyKey(idempotencyKey)!!
   }
 
-  fun getPayment(paymentId: java.util.UUID): Payment {
+  fun confirmPayment(paymentId: UUID, razorpayPaymentId: String): Payment {
+    log.info("confirmPayment - Confirming payment: $paymentId, razorpayPaymentId: $razorpayPaymentId")
+
+    val payment = paymentMapper.findById(paymentId)
+      ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND)
+
+    if (payment.status?.id != PaymentStatus.PENDING.id) {
+      throw ApplicationException(ApplicationExceptionTypes.INVALID_TRIP_STATUS,
+        "Payment is not in PENDING status")
+    }
+
+    paymentMapper.updateStatus(paymentId, PaymentStatus.COMPLETED.id, razorpayPaymentId)
+    log.info("confirmPayment - Payment $paymentId confirmed with razorpay payment: $razorpayPaymentId")
+
+    return paymentMapper.findById(paymentId)!!
+  }
+
+  fun getPayment(paymentId: UUID): Payment {
     log.info("getPayment - Fetching payment: $paymentId")
     return paymentMapper.findById(paymentId)
-      ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND) // reuse for now
-  }
-
-  private fun processPayment(payment: Payment) {
-    log.info("processPayment - Processing payment: ${payment.id} via PSP")
-
-    paymentMapper.updateStatus(payment.id!!, PaymentStatus.PROCESSING.id, null)
-
-    try {
-      val orderResponse = paymentGateway.createOrder(
-        amount = payment.amount,
-        currency = payment.currency,
-        receiptId = payment.id.toString()
-      )
-
-      // In a real flow, the frontend would complete the payment using the orderId
-      // For now, we mark it as completed with the PSP reference
-      paymentMapper.updateStatus(payment.id, PaymentStatus.COMPLETED.id, orderResponse.pspReference)
-      log.info("processPayment - Payment ${payment.id} completed, PSP ref: ${orderResponse.pspReference}")
-
-    } catch (e: Exception) {
-      log.error("processPayment - Payment ${payment.id} failed: ${e.message}", e)
-      paymentMapper.updateStatus(payment.id, PaymentStatus.FAILED.id, null)
-    }
+      ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND)
   }
 }

@@ -25,9 +25,9 @@
 
   <insert id="insert" parameterType="com.ridehailing.model.payment.Payment">
     INSERT INTO payments (tenant_id, trip_id, rider_id, amount, currency, status_id,
-      payment_method_id, idempotency_key, add_date)
+      payment_method_id, psp_reference, idempotency_key, add_date)
     VALUES (#{tenantId}, #{tripId}, #{riderId}, #{amount}, #{currency},
-      #{status.id}, #{paymentMethod.id}, #{idempotencyKey}, NOW())
+      #{status.id}, #{paymentMethod.id}, #{pspReference}, #{idempotencyKey}, NOW())
   </insert>
 
   <select id="findById" resultMap="paymentResultMap">

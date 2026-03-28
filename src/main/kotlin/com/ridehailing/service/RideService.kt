@@ -172,6 +172,11 @@ class RideService(
     return rideMapper.findById(rideId)!!
   }
 
+  fun getActiveRideForDriver(driverId: UUID): Ride? {
+    log.debug("getActiveRideForDriver - Checking for active ride for driver: $driverId")
+    return rideMapper.findActiveByDriverId(driverId)
+  }
+
   private fun matchDriver(ride: Ride) {
     log.info("matchDriver - Attempting to match driver for ride: ${ride.id}")
 
