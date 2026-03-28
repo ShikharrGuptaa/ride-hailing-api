@@ -13,9 +13,9 @@ A multi-tenant, multi-region ride-hailing platform supporting real-time driver-r
                     │   Frontend   │
                     │  (React/Vite)│
                     └──────┬──────┘
-                           │ HTTP/REST + JWT
+                           │ HTTP/REST + JWT + WebSocket
                     ┌──────▼──────┐
-                    │  API Gateway │
+                    │  API Server  │
                     │ (Spring Boot)│
                     └──────┬──────┘
                            │
@@ -32,12 +32,13 @@ A multi-tenant, multi-region ride-hailing platform supporting real-time driver-r
 
 | Component | Technology | Purpose |
 |-----------|-----------|---------|
-| API Server | Kotlin + Spring Boot 3.4 | REST API, business logic |
+| API Server | Kotlin + Spring Boot 3.4 | REST API, business logic, WebSocket |
 | Database | PostgreSQL 18 (UUIDv7) | Transactional data, type system |
 | Cache | Redis | Driver locations, ride caching |
 | Payment | Razorpay | Payment order creation, checkout |
 | Frontend | React + Vite | Rider/Driver dashboards |
 | Auth | JWT (HMAC-SHA256) | Stateless authentication |
+| Real-time | WebSocket (STOMP/SockJS) | Live ride updates, notifications |
 | Migration | Flyway | Schema versioning |
 | ORM | MyBatis | SQL mapping |
 
@@ -110,15 +111,23 @@ All entity tables include: `tenant_id`, `region_id`, `add_date`, `update_date`, 
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | /v1/riders | Public | Register rider, returns JWT |
+| GET | /v1/riders/{id} | Rider | Get rider details |
 | POST | /v1/drivers | Public | Register driver, returns JWT |
+| GET | /v1/drivers/{id} | Driver | Get driver details |
 | POST | /v1/drivers/{id}/status | Driver | Go online/offline |
 | POST | /v1/drivers/{id}/location | Driver | Update location |
+| GET | /v1/drivers/{id}/active-ride | Driver | Get current assigned ride |
 | GET | /v1/rides/available | Public | List REQUESTED rides |
+| GET | /v1/rides/estimate | Public | Estimate fare for route |
 | POST | /v1/rides | Rider | Create ride request |
 | GET | /v1/rides/{id} | Auth | Get ride status |
 | POST | /v1/drivers/{id}/accept | Driver | Accept a ride |
+| GET | /v1/trips/{id} | Auth | Get trip details |
+| GET | /v1/trips/by-ride/{rideId} | Auth | Get trip by ride ID |
 | POST | /v1/trips/{id}/end | Driver | End trip, calculate fare |
 | POST | /v1/payments | Rider | Create Razorpay order |
+| GET | /v1/payments/{id} | Auth | Get payment details |
+| GET | /v1/payments/by-trip/{tripId} | Auth | Get payment by trip ID |
 | POST | /v1/payments/{id}/confirm | Rider | Confirm after checkout |
 
 #### Idempotency
@@ -153,9 +162,15 @@ Vehicle Rates:
   PREMIUM:  ₹50 base + ₹18/km + ₹2.5/min
   SUV:      ₹70 base + ₹22/km + ₹3.0/min
 
-Distance: Haversine formula (great-circle distance)
-Duration: Time between trip start and end
+Distance: Haversine formula (great-circle distance between coordinates)
+Duration: Estimated from distance ÷ 25 km/h (average city speed)
 ```
+
+**Haversine Distance Calculation:**
+- Uses Earth's radius (6371 km) for great-circle distance
+- Calculates straight-line distance between two GPS coordinates
+- Accurate for short distances, suitable for fare estimation
+- Note: Does not account for actual road routes or traffic
 
 ### 2.5 Payment Flow
 
@@ -176,7 +191,22 @@ Duration: Time between trip start and end
 | Driver profile | Redis | 300s | On status change |
 | Ride status | Redis | 300s | On status change |
 
-### 2.7 Driver Matching Algorithm
+### 2.7 Real-Time Updates (WebSocket)
+
+**WebSocket Endpoint:** `/ws` (with SockJS fallback)
+
+**Topics:**
+- `/topic/rides/available` — New ride requests broadcast to all drivers
+- `/topic/rides/{rideId}` — Ride status updates (for rider and driver)
+- `/topic/drivers/{driverId}/rides` — Driver-specific ride assignments
+
+**Events:**
+- New ride created → Broadcast to all online drivers
+- Ride accepted → Notify rider
+- Trip started → Notify both parties
+- Trip completed → Notify both parties with fare details
+
+### 2.8 Driver Matching Algorithm
 
 1. Rider creates ride with pickup coordinates and vehicle type
 2. Ride stays as REQUESTED
@@ -185,18 +215,18 @@ Duration: Time between trip start and end
 5. First driver to accept wins; others get CONCURRENT_MODIFICATION error
 6. Haversine-based nearby driver search available for future auto-matching
 
-### 2.8 Error Handling
+### 2.9 Error Handling
 
 - `ApplicationException` with typed error codes (1-100)
 - `GlobalExceptionHandler` returns consistent `ApiResponse` format
 - All errors: `{ success: false, error: { code, message } }`
 - Validation errors from Jakarta annotations caught and formatted
 
-### 2.9 Project Structure
+### 2.10 Project Structure
 
 ```
 src/main/kotlin/com/ridehailing/
-├── config/          # Redis, CORS, JWT, Exception handling, Constants
+├── config/          # Redis, CORS, JWT, WebSocket, Exception handling, Constants, Auth interceptor
 ├── controller/      # REST controllers (Driver, Rider, Ride, Trip, Payment)
 ├── mapper/          # MyBatis mapper interfaces
 ├── model/
@@ -208,7 +238,7 @@ src/main/kotlin/com/ridehailing/
 │   ├── payment/     # Payment
 │   ├── enums/       # DriverStatus, RideStatus, TripStatus, etc.
 │   └── dto/         # Request DTOs
-├── service/         # Business logic
+├── service/         # Business logic (DriverService, RiderService, RideService, TripService, FareService, JwtService, TenantService, RideEventService)
 │   └── payment/     # PaymentGateway interface + Razorpay impl
 └── util/            # IdempotencyUtil
 
@@ -218,7 +248,7 @@ src/main/resources/
 └── mapper/          # MyBatis XML mappers
 ```
 
-### 2.10 Security
+### 2.11 Security
 
 - JWT authentication (HMAC-SHA256, 24h expiry)
 - Input validation via Jakarta Bean Validation
@@ -230,14 +260,14 @@ src/main/resources/
 - Idempotency prevents duplicate operations
 
 
-### 2.11 API Documentation
+### 2.12 API Documentation
 
 - Swagger UI: `http://localhost:8080/v1/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v1/api-docs`
 - All endpoints annotated with `@Operation` for auto-generated docs
 - SpringDoc OpenAPI 2.8.4
 
-### 2.12 Health & Monitoring
+### 2.13 Health & Monitoring
 
 - Health check: `http://localhost:8080/v1/actuator/health`
 - Metrics: `http://localhost:8080/v1/actuator/metrics`

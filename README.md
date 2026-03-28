@@ -60,23 +60,34 @@ All under `/v1` context path. Auth required unless marked Public.
 | Method | Endpoint | Auth | Description |
 |--------|----------|------|-------------|
 | POST | /v1/riders | Public | Register rider (returns JWT) |
-| GET | /v1/riders/{id} | Rider | Get rider |
+| GET | /v1/riders/{id} | Rider | Get rider details |
 | POST | /v1/drivers | Public | Register driver (returns JWT) |
-| GET | /v1/drivers/{id} | Driver | Get driver |
+| GET | /v1/drivers/{id} | Driver | Get driver details |
 | POST | /v1/drivers/{id}/status | Driver | Go online/offline |
 | POST | /v1/drivers/{id}/location | Driver | Update location |
 | GET | /v1/drivers/{id}/active-ride | Driver | Get current assigned ride |
-| GET | /v1/rides/available | Public | List available rides |
+| GET | /v1/rides/available | Public | List available rides (filter by vehicleTypeId) |
+| GET | /v1/rides/estimate | Public | Estimate fare for a route |
 | POST | /v1/rides | Rider | Request a ride |
 | GET | /v1/rides/{id} | Auth | Get ride status |
 | POST | /v1/drivers/{id}/accept | Driver | Accept a ride |
-| GET | /v1/trips/{id} | Auth | Get trip |
-| GET | /v1/trips/by-ride/{rideId} | Auth | Get trip by ride |
-| POST | /v1/trips/{id}/end | Driver | End trip + fare calc |
+| GET | /v1/trips/{id} | Auth | Get trip details |
+| GET | /v1/trips/by-ride/{rideId} | Auth | Get trip by ride ID |
+| POST | /v1/trips/{id}/end | Driver | End trip + calculate fare |
 | POST | /v1/payments | Rider | Create Razorpay order |
+| GET | /v1/payments/{id} | Auth | Get payment details |
+| GET | /v1/payments/by-trip/{tripId} | Auth | Get payment by trip ID |
 | POST | /v1/payments/{id}/confirm | Rider | Confirm payment |
-| GET | /v1/payments/{id} | Auth | Get payment |
-| GET | /v1/payments/by-trip/{tripId} | Auth | Get payment by trip |
+
+### WebSocket Endpoints
+
+Connect to `/ws` (with SockJS fallback) for real-time updates:
+
+| Topic | Description |
+|-------|-------------|
+| /topic/rides/available | New ride requests broadcast to all drivers |
+| /topic/rides/{rideId} | Ride status updates for specific ride |
+| /topic/drivers/{driverId}/rides | Driver-specific ride assignments |
 
 ## Documentation
 
@@ -93,6 +104,30 @@ mvn test
 
 24 unit tests covering FareService, DriverService, RideService, TripService, IdempotencyUtil.
 
+## Distance Calculation
+
+The system uses the **Haversine formula** to calculate great-circle distance between GPS coordinates:
+
+- **Formula**: Uses Earth's radius (6371 km) for spherical distance calculation
+- **Accuracy**: Suitable for short distances and fare estimation
+- **Trade-off**: Calculates straight-line distance, not actual road routes
+- **Performance**: Fast, no external API calls, works offline
+
+For production systems requiring road-based routing, consider integrating:
+- Google Maps Distance Matrix API
+- Mapbox Directions API
+- OSRM (Open Source Routing Machine)
+
+## Key Features
+
+- **Multi-tenant & Multi-region**: Tenant-based isolation, region-tagged data
+- **Real-time Updates**: WebSocket (STOMP/SockJS) for live ride notifications
+- **Haversine Distance**: Great-circle distance calculation for fare estimation
+- **Idempotency**: SHA-256 hash-based duplicate prevention
+- **Optimistic Locking**: First-driver-wins ride acceptance
+- **Soft Deletes**: JSONB-based delete_info for audit trail
+- **UUIDv7**: Time-ordered primary keys for better B-tree performance
+
 ## Frontend
 
 Separate repo: [ride-hailing-ui](https://github.com/ShikharrGuptaa/ride-hailing-ui)
@@ -100,4 +135,4 @@ Separate repo: [ride-hailing-ui](https://github.com/ShikharrGuptaa/ride-hailing-
 - React + Vite
 - Rider view: `/rider` — register, request ride, track, pay via Razorpay
 - Driver view: `/driver` — register, go online, accept rides, end trips
-- Real-time polling, session persistence via localStorage
+- Real-time WebSocket updates, session persistence via localStorage
