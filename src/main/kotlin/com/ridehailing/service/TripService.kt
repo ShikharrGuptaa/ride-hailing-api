@@ -26,7 +26,8 @@ class TripService(
   private val rideMapper: RideMapper,
   private val fareService: FareService,
   private val driverService: DriverService,
-  private val redisTemplate: RedisTemplate<String, Any>
+  private val redisTemplate: RedisTemplate<String, Any>,
+  private val rideEventService: RideEventService
 ) {
 
   private val log = LoggerFactory.getLogger(TripService::class.java)
@@ -104,6 +105,9 @@ class TripService(
     redisTemplate.delete("${Constant.Redis.RIDE_CACHE_KEY}${ride.id}")
 
     log.info("endTrip - Trip $tripId ended. Distance: $distanceKm km, Fare: ${fareBreakdown.totalFare}")
+    val completedRide = rideMapper.findById(ride.id!!)!!
+    rideEventService.broadcastRideUpdate(completedRide)
+
     return tripMapper.findById(tripId)!!
   }
 }

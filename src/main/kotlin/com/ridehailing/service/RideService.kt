@@ -6,7 +6,6 @@ import com.ridehailing.mapper.RideMapper
 import com.ridehailing.mapper.TripMapper
 import com.ridehailing.model.common.ApplicationException
 import com.ridehailing.model.common.IdName
-import com.ridehailing.model.driver.Driver
 import com.ridehailing.model.enums.DriverStatus
 import com.ridehailing.model.enums.Region
 import com.ridehailing.model.enums.RideStatus
@@ -30,7 +29,8 @@ class RideService(
   private val driverService: DriverService,
   private val riderService: RiderService,
   private val tenantService: TenantService,
-  private val redisTemplate: RedisTemplate<String, Any>
+  private val redisTemplate: RedisTemplate<String, Any>,
+  private val rideEventService: RideEventService
 ) {
 
   private val log = LoggerFactory.getLogger(RideService::class.java)
@@ -96,6 +96,9 @@ class RideService(
     // Fetch the inserted ride
     val createdRide = rideMapper.findByIdempotencyKey(idempotencyKey)!!
 
+    // Broadcast new ride to drivers
+    rideEventService.broadcastNewRide(createdRide)
+
     return createdRide
   }
 
@@ -158,7 +161,12 @@ class RideService(
     redisTemplate.delete("${Constant.Redis.RIDE_CACHE_KEY}$rideId")
 
     log.info("acceptRide - Ride $rideId accepted by driver $driverId")
-    return rideMapper.findById(rideId)!!
+    val acceptedRide = rideMapper.findById(rideId)!!
+
+    // Broadcast ride update to rider
+    rideEventService.broadcastRideUpdate(acceptedRide)
+
+    return acceptedRide
   }
 
   fun findAvailableRides(vehicleTypeId: Int): List<Ride> {
