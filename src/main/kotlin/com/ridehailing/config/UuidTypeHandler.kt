@@ -20,24 +20,24 @@ class UuidTypeHandler : BaseTypeHandler<UUID?>() {
     parameter: UUID?,
     jdbcType: JdbcType?
   ) {
-    ps.setString(i, parameter.toString())
+    ps.setObject(i, parameter)
   }
 
   @Throws(SQLException::class)
   override fun getNullableResult(rs: ResultSet, columnName: String?): UUID? {
-    val value = rs.getString(columnName)
-    return if (value == null) null else UUID.fromString(value)
+    val value = rs.getObject(columnName) ?: return null
+    return if (value is UUID) value else UUID.fromString(value.toString())
   }
 
   @Throws(SQLException::class)
   override fun getNullableResult(rs: ResultSet, columnIndex: Int): UUID? {
-    val value = rs.getString(columnIndex)
-    return if (value == null) null else UUID.fromString(value)
+    val value = rs.getObject(columnIndex) ?: return null
+    return if (value is UUID) value else UUID.fromString(value.toString())
   }
 
   @Throws(SQLException::class)
   override fun getNullableResult(cs: CallableStatement, columnIndex: Int): UUID? {
-    val value = cs.getString(columnIndex)
-    return if (value == null) null else UUID.fromString(value)
+    val value = cs.getObject(columnIndex) ?: return null
+    return if (value is UUID) value else UUID.fromString(value.toString())
   }
 }

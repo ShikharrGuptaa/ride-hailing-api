@@ -25,7 +25,8 @@ class RiderService(
 
     val existing = riderMapper.findByPhoneAndTenant(request.phone, tenantId)
     if (existing != null) {
-      throw ApplicationException(ApplicationExceptionTypes.RIDER_ALREADY_EXISTS)
+      log.info("createRider - Rider already exists with phone: ${request.phone}")
+      return existing
     }
 
     val rider = Rider(
@@ -38,7 +39,7 @@ class RiderService(
 
     riderMapper.insert(rider)
     log.info("createRider - Rider created")
-    return riderMapper.findByPhoneAndTenant(rider.phone, tenantId)!!
+    return riderMapper.findByPhoneAndTenant(rider.phone!!, tenantId)!!
   }
 
   fun findById(riderId: UUID): Rider {

@@ -8,10 +8,10 @@ import java.util.UUID
 
 data class Payment(
   val id: UUID? = null,
-  val tenantId: UUID,
-  val tripId: UUID,
-  val riderId: UUID,
-  val amount: BigDecimal,
+  val tenantId: UUID? = null,
+  val tripId: UUID? = null,
+  val riderId: UUID? = null,
+  val amount: BigDecimal = BigDecimal.ZERO,
   val currency: String = "INR",
   val status: IdName? = IdName(PaymentStatus.PENDING.id),
   val paymentMethod: IdName? = null,

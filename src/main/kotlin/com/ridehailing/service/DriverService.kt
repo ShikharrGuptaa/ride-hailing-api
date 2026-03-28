@@ -42,7 +42,8 @@ class DriverService(
 
     val existing = driverMapper.findByPhoneAndTenant(request.phone, tenantId)
     if (existing != null) {
-      throw ApplicationException(ApplicationExceptionTypes.DRIVER_ALREADY_EXISTS)
+      log.info("createDriver - Driver already exists with phone: ${request.phone}")
+      return existing
     }
 
     val driver = Driver(
@@ -57,7 +58,7 @@ class DriverService(
 
     driverMapper.insert(driver)
     log.info("createDriver - Driver created")
-    return driverMapper.findByPhoneAndTenant(driver.phone, tenantId)!!
+    return driverMapper.findByPhoneAndTenant(driver.phone!!, tenantId)!!
   }
 
   fun findById(driverId: UUID): Driver {

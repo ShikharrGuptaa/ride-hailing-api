@@ -72,4 +72,15 @@ class DriverController(
     val ride = rideService.acceptRide(id, request.rideId)
     return ApiResponse.ok(ride, "Ride accepted")
   }
+
+  @Operation(summary = "Update driver status (ONLINE/OFFLINE)")
+  @PostMapping(value = ["/{id}/status"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun updateStatus(
+    @PathVariable id: UUID,
+    @Valid @RequestBody request: com.ridehailing.model.dto.UpdateStatusRequest
+  ): ApiResponse<String> {
+    log.info("updateStatus - POST /drivers/$id/status to ${request.statusId}")
+    driverService.updateStatus(id, request.statusId)
+    return ApiResponse.ok("updated", "Driver status updated")
+  }
 }

@@ -36,4 +36,11 @@ class TripController(
     log.info("getTrip - GET /trips/$id")
     return ApiResponse.ok(tripService.getTrip(id))
   }
+
+  @Operation(summary = "Get trip by ride ID")
+  @GetMapping(value = ["/by-ride/{rideId}"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getTripByRideId(@PathVariable rideId: UUID): ApiResponse<Trip> {
+    log.info("getTripByRideId - GET /trips/by-ride/$rideId")
+    return ApiResponse.ok(tripService.getTripByRideId(rideId))
+  }
 }

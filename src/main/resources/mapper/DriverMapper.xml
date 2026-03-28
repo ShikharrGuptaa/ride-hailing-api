@@ -3,7 +3,7 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.ridehailing.mapper.DriverMapper">
 
-  <resultMap id="driverResultMap" type="com.ridehailing.model.driver.Driver">
+  <resultMap id="driverResultMap" type="com.ridehailing.model.driver.Driver" autoMapping="false">
     <id property="id" column="id" javaType="java.util.UUID" jdbcType="OTHER"/>
     <result property="tenantId" column="tenant_id" javaType="java.util.UUID" jdbcType="OTHER"/>
     <result property="name" column="name"/>

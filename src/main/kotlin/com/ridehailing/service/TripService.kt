@@ -37,6 +37,12 @@ class TripService(
       ?: throw ApplicationException(ApplicationExceptionTypes.TRIP_NOT_FOUND)
   }
 
+  fun getTripByRideId(rideId: UUID): Trip {
+    log.info("getTripByRideId - Fetching trip for ride: $rideId")
+    return tripMapper.findByRideId(rideId)
+      ?: throw ApplicationException(ApplicationExceptionTypes.TRIP_NOT_FOUND)
+  }
+
   @Transactional
   fun endTrip(tripId: UUID, endLat: Double?, endLng: Double?): Trip {
     log.info("endTrip - Ending trip: $tripId")
@@ -49,7 +55,7 @@ class TripService(
         "Expected IN_PROGRESS(${TripStatus.IN_PROGRESS.id}), got ${trip.status?.id}")
     }
 
-    val ride = rideMapper.findById(trip.rideId)
+    val ride = rideMapper.findById(trip.rideId!!)
       ?: throw ApplicationException(ApplicationExceptionTypes.RIDE_NOT_FOUND)
 
     val finalEndLat = endLat ?: ride.destinationLat
@@ -91,7 +97,7 @@ class TripService(
     rideMapper.updateStatus(ride.id!!, RideStatus.COMPLETED.id, RideStatus.DRIVER_ACCEPTED.id)
 
     // Free up the driver
-    driverService.updateStatus(trip.driverId, DriverStatus.ONLINE.id)
+    driverService.updateStatus(trip.driverId!!, DriverStatus.ONLINE.id)
 
     // Invalidate cache
     redisTemplate.delete("${Constant.Redis.RIDE_CACHE_KEY}${ride.id}")

@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: ride-hailing-api-test
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  flyway:
+    enabled: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.ridehailing.model
+  type-handlers-package: com.ridehailing.config
+  configuration:
+    map-underscore-to-camel-case: true
+
+razorpay:
+  key-id: test
+  key-secret: test
