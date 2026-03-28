@@ -66,10 +66,11 @@ class TripService(
       trip.startLat, trip.startLng, finalEndLat, finalEndLng
     )
 
-    // Calculate duration
-    val startTime = trip.startedAt ?: trip.addDate ?: OffsetDateTime.now()
-    val durationMinutes = Duration.between(startTime, OffsetDateTime.now())
-      .toMinutes().let { BigDecimal(maxOf(it, 1)).setScale(2, RoundingMode.HALF_UP) }
+    // Calculate duration based on distance (avg city speed 25 km/h) — same as estimate
+    val durationMinutes = distanceKm
+      .divide(BigDecimal(25), 2, RoundingMode.HALF_UP)
+      .multiply(BigDecimal(60)).setScale(2, RoundingMode.HALF_UP)
+      .let { if (it < BigDecimal.ONE) BigDecimal.ONE.setScale(2) else it }
 
     // Resolve vehicle type and calculate fare
     val vehicleType = VehicleType.entries.first { it.id == ride.vehicleType?.id }

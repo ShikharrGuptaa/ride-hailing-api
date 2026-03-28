@@ -171,6 +171,13 @@ class RideService(
     return rideMapper.findActiveByDriverId(driverId)
   }
 
+  fun getFareService(): FareService = fareService
+
+  fun getDriverEarnings(driverId: UUID): Map<String, Any>? {
+    log.info("getDriverEarnings - Fetching earnings for driver: $driverId")
+    return tripMapper.getDriverEarnings(driverId)
+  }
+
   private fun matchDriver(ride: Ride) {
     log.info("matchDriver - Attempting to match driver for ride: ${ride.id}")
 

@@ -48,6 +48,25 @@ class DriverController(
     return ApiResponse.ok(AuthResponse(token, driver), "Driver registered successfully")
   }
 
+  @Operation(summary = "Lookup driver by phone (login)")
+  @GetMapping(value = ["/lookup"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun lookupByPhone(@RequestParam phone: String): ApiResponse<AuthResponse<Driver>?> {
+    log.info("lookupByPhone - GET /drivers/lookup?phone=$phone")
+    val driver = driverService.findByPhone(phone)
+    if (driver != null) {
+      val token = jwtService.generateToken(driver.id!!, "DRIVER")
+      return ApiResponse.ok(AuthResponse(token, driver))
+    }
+    return ApiResponse.ok(null, "Not found")
+  }
+
+  @Operation(summary = "Get driver earnings")
+  @GetMapping(value = ["/{id}/earnings"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun getEarnings(@PathVariable id: UUID): ApiResponse<Map<String, Any>?> {
+    log.info("getEarnings - GET /drivers/$id/earnings")
+    return ApiResponse.ok(rideService.getDriverEarnings(id))
+  }
+
   @Operation(summary = "Get driver by ID")
   @GetMapping(value = ["/{id}"], produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getDriver(@PathVariable id: UUID): ApiResponse<Driver> {

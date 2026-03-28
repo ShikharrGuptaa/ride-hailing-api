@@ -31,4 +31,6 @@ interface TripMapper {
     @Param("id") id: UUID,
     @Param("statusId") statusId: Int
   ): Int
+
+  fun getDriverEarnings(@Param("driverId") driverId: UUID): Map<String, Any>?
 }

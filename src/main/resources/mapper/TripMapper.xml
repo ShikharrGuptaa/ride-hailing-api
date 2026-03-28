@@ -64,4 +64,14 @@
     WHERE id = #{id} AND delete_info IS NULL
   </update>
 
+  <select id="getDriverEarnings" resultType="map">
+    SELECT
+      COALESCE(SUM(total_fare), 0) as total_earnings,
+      COUNT(*) as total_trips,
+      COALESCE(SUM(CASE WHEN started_at::date = CURRENT_DATE THEN total_fare ELSE 0 END), 0) as today_earnings,
+      COUNT(CASE WHEN started_at::date = CURRENT_DATE THEN 1 END) as today_trips
+    FROM trips
+    WHERE driver_id = #{driverId} AND status_id = 303 AND delete_info IS NULL
+  </select>
+
 </mapper>

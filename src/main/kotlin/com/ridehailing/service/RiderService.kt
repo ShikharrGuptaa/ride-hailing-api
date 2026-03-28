@@ -47,4 +47,10 @@ class RiderService(
     return riderMapper.findById(riderId)
       ?: throw ApplicationException(ApplicationExceptionTypes.RIDER_NOT_FOUND)
   }
+
+  fun findByPhone(phone: String): Rider? {
+    log.debug("findByPhone - Looking up rider by phone: $phone")
+    val tenantId = tenantService.getDefaultTenantId()
+    return riderMapper.findByPhoneAndTenant(phone, tenantId)
+  }
 }

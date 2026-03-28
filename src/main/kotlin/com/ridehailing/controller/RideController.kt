@@ -34,6 +34,31 @@ class RideController(
     return ApiResponse.ok(rideService.findAvailableRides(vehicleTypeId))
   }
 
+  @Operation(summary = "Estimate fare for a ride")
+  @GetMapping(value = ["/estimate"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun estimateFare(
+    @RequestParam pickupLat: Double, @RequestParam pickupLng: Double,
+    @RequestParam destLat: Double, @RequestParam destLng: Double,
+    @RequestParam vehicleTypeId: Int
+  ): ApiResponse<Map<String, Any>> {
+    log.info("estimateFare - GET /rides/estimate")
+    val vehicleType = com.ridehailing.model.enums.VehicleType.entries.first { it.id == vehicleTypeId }
+    val fareService = rideService.getFareService()
+    val distance = fareService.haversineDistance(pickupLat, pickupLng, destLat, destLng)
+    val durationMin = distance.divide(java.math.BigDecimal(25), 2, java.math.RoundingMode.HALF_UP)
+      .multiply(java.math.BigDecimal(60)).setScale(2, java.math.RoundingMode.HALF_UP)
+    val breakdown = fareService.calculateFare(distance, durationMin, vehicleType)
+    return ApiResponse.ok(mapOf(
+      "estimatedFare" to breakdown.totalFare,
+      "baseFare" to breakdown.baseFare,
+      "distanceFare" to breakdown.distanceFare,
+      "timeFare" to breakdown.timeFare,
+      "distanceKm" to distance,
+      "durationMin" to durationMin,
+      "surgeMultiplier" to breakdown.surgeMultiplier
+    ))
+  }
+
   @Operation(summary = "Get ride status")
   @GetMapping(value = ["/{id}"], produces = [MediaType.APPLICATION_JSON_VALUE])
   fun getRide(@PathVariable id: UUID): ApiResponse<Ride> {

@@ -22,13 +22,25 @@ class RiderController(
 
   private val log = LoggerFactory.getLogger(this::class.java)
 
-  @Operation(summary = "Register a new rider (returns JWT token)")
+  @Operation(summary = "Register/login rider (returns JWT)")
   @PostMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
   fun createRider(@Valid @RequestBody request: CreateRiderRequest): ApiResponse<AuthResponse<Rider>> {
     log.info("createRider - POST /riders")
     val rider = riderService.createRider(request)
     val token = jwtService.generateToken(rider.id!!, "RIDER")
     return ApiResponse.ok(AuthResponse(token, rider), "Rider registered successfully")
+  }
+
+  @Operation(summary = "Lookup rider by phone (login)")
+  @GetMapping(value = ["/lookup"], produces = [MediaType.APPLICATION_JSON_VALUE])
+  fun lookupByPhone(@RequestParam phone: String): ApiResponse<AuthResponse<Rider>?> {
+    log.info("lookupByPhone - GET /riders/lookup?phone=$phone")
+    val rider = riderService.findByPhone(phone)
+    if (rider != null) {
+      val token = jwtService.generateToken(rider.id!!, "RIDER")
+      return ApiResponse.ok(AuthResponse(token, rider))
+    }
+    return ApiResponse.ok(null, "Not found")
   }
 
   @Operation(summary = "Get rider by ID")

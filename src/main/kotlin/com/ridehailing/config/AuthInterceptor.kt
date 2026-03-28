@@ -59,10 +59,12 @@ class AuthInterceptor(
   private fun isPublicEndpoint(path: String, method: String): Boolean {
     // Registration endpoints (POST only)
     if (method == "POST" && (path == "/riders" || path == "/drivers")) return true
+    if (method == "GET" && (path == "/riders/lookup" || path == "/drivers/lookup")) return true
     // Swagger/actuator
     if (PUBLIC_PATHS.any { path.startsWith(it) && it.length > 2 }) return true
     // Available rides (drivers poll this)
     if (path.startsWith("/rides/available")) return true
+    if (path.startsWith("/rides/estimate")) return true
     return false
   }
 }

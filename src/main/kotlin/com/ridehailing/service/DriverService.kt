@@ -67,6 +67,12 @@ class DriverService(
       ?: throw ApplicationException(ApplicationExceptionTypes.DRIVER_NOT_FOUND)
   }
 
+  fun findByPhone(phone: String): Driver? {
+    log.debug("findByPhone - Looking up driver by phone: $phone")
+    val tenantId = tenantService.getDefaultTenantId()
+    return driverMapper.findByPhoneAndTenant(phone, tenantId)
+  }
+
   fun updateLocation(driverId: UUID, lat: Double, lng: Double): DriverCurrentLocation {
     log.info("updateLocation - Updating location for driver: $driverId to ($lat, $lng)")
 
