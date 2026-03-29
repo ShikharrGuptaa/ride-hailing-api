@@ -25,4 +25,9 @@ class RideEventService(
       messagingTemplate.convertAndSend("/topic/drivers/${ride.driverId}/rides", ride)
     }
   }
+
+  fun broadcastPaymentConfirmed(driverId: java.util.UUID, data: Map<String, Any>) {
+    log.info("broadcastPaymentConfirmed - Notifying driver: $driverId")
+    messagingTemplate.convertAndSend("/topic/drivers/$driverId/payments", data)
+  }
 }

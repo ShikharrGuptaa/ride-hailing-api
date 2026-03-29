@@ -2,11 +2,13 @@ package com.ridehailing.service
 
 import com.ridehailing.config.ApplicationExceptionTypes
 import com.ridehailing.mapper.PaymentMapper
+import com.ridehailing.mapper.RideMapper
 import com.ridehailing.mapper.TripMapper
 import com.ridehailing.model.common.ApplicationException
 import com.ridehailing.model.common.IdName
 import com.ridehailing.model.enums.PaymentMethod
 import com.ridehailing.model.enums.PaymentStatus
+import com.ridehailing.model.enums.RideStatus
 import com.ridehailing.model.enums.TripStatus
 import com.ridehailing.model.payment.Payment
 import com.ridehailing.model.dto.CreatePaymentRequest
@@ -21,8 +23,10 @@ import java.util.UUID
 class PaymentService(
   private val paymentMapper: PaymentMapper,
   private val tripMapper: TripMapper,
+  private val rideMapper: RideMapper,
   private val tenantService: TenantService,
-  private val paymentGateway: PaymentGateway
+  private val paymentGateway: PaymentGateway,
+  private val rideEventService: RideEventService
 ) {
 
   private val log = LoggerFactory.getLogger(PaymentService::class.java)
@@ -80,6 +84,7 @@ class PaymentService(
     return paymentMapper.findByIdempotencyKey(idempotencyKey)!!
   }
 
+  @Transactional
   fun confirmPayment(paymentId: UUID, razorpayPaymentId: String): Payment {
     log.info("confirmPayment - Confirming payment: $paymentId, razorpayPaymentId: $razorpayPaymentId")
 
@@ -92,8 +97,25 @@ class PaymentService(
     }
 
     paymentMapper.updateStatus(paymentId, PaymentStatus.COMPLETED.id, razorpayPaymentId)
-    log.info("confirmPayment - Payment $paymentId confirmed with razorpay payment: $razorpayPaymentId")
 
+    // Mark ride as COMPLETED now that payment is confirmed
+    val trip = tripMapper.findById(payment.tripId!!)
+    if (trip?.rideId != null) {
+      rideMapper.updateStatus(trip.rideId, RideStatus.COMPLETED.id, RideStatus.PAYMENT_PENDING.id)
+      val completedRide = rideMapper.findById(trip.rideId)!!
+      rideEventService.broadcastRideUpdate(completedRide)
+      // Notify driver that payment was confirmed so earnings refresh instantly
+      if (trip.driverId != null) {
+        rideEventService.broadcastPaymentConfirmed(trip.driverId, mapOf(
+          "tripId" to trip.id.toString(),
+          "amount" to (trip.totalFare?.toString() ?: "0"),
+          "status" to "COMPLETED"
+        ))
+      }
+      log.info("confirmPayment - Ride ${trip.rideId} marked COMPLETED after payment")
+    }
+
+    log.info("confirmPayment - Payment $paymentId confirmed with razorpay payment: $razorpayPaymentId")
     return paymentMapper.findById(paymentId)!!
   }
 

@@ -95,8 +95,8 @@ class TripService(
       throw ApplicationException(ApplicationExceptionTypes.CONCURRENT_MODIFICATION)
     }
 
-    // Complete the ride
-    rideMapper.updateStatus(ride.id!!, RideStatus.COMPLETED.id, RideStatus.DRIVER_ACCEPTED.id)
+    // Ride moves to PAYMENT_PENDING — will be COMPLETED after payment confirmation
+    rideMapper.updateStatus(ride.id!!, RideStatus.PAYMENT_PENDING.id, RideStatus.DRIVER_ACCEPTED.id)
 
     // Free up the driver
     driverService.updateStatus(trip.driverId!!, DriverStatus.ONLINE.id)
