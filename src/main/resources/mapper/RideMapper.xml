@@ -93,4 +93,11 @@
     LIMIT 10
   </select>
 
+  <select id="findStaleRides" resultMap="rideResultMap">
+    SELECT * FROM rides
+    WHERE status_id IN (201, 202, 203)
+      AND requested_at &lt; NOW() - INTERVAL '15 minutes'
+      AND delete_info IS NULL
+  </select>
+
 </mapper>

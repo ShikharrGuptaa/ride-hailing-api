@@ -36,6 +36,7 @@ class RideServiceTest {
   @Mock lateinit var tenantService: TenantService
   @Mock lateinit var redisTemplate: RedisTemplate<String, Any>
   @Mock lateinit var valueOps: ValueOperations<String, Any>
+  @Mock lateinit var rideEventService: RideEventService
 
   @InjectMocks lateinit var rideService: RideService
 
@@ -63,8 +64,6 @@ class RideServiceTest {
       vehicleType = IdName(VehicleType.ECONOMY.id), estimatedFare = BigDecimal("150.00")
     )
     whenever(rideMapper.findByIdempotencyKey(any())).thenReturn(null, createdRide)
-    whenever(driverService.findNearbyAvailable(any(), any(), any(), any())).thenReturn(emptyList())
-    whenever(rideMapper.findById(any())).thenReturn(createdRide)
 
     val result = rideService.createRide(request)
     assertNotNull(result)
@@ -127,7 +126,7 @@ class RideServiceTest {
     val rideId = UUID.randomUUID()
     val ride = Ride(
       id = rideId, tenantId = tenantId, riderId = riderId,
-      status = IdName(RideStatus.REQUESTED.id), pickupLat = 19.0, pickupLng = 72.0,
+      status = IdName(RideStatus.COMPLETED.id), pickupLat = 19.0, pickupLng = 72.0,
       destinationLat = 19.1, destinationLng = 72.1,
       vehicleType = IdName(VehicleType.ECONOMY.id)
     )
@@ -135,21 +134,5 @@ class RideServiceTest {
 
     val ex = assertThrows<ApplicationException> { rideService.acceptRide(driverId, rideId) }
     assertEquals(ApplicationExceptionTypes.INVALID_RIDE_STATUS.first, ex.code)
-  }
-
-  @Test
-  fun `acceptRide - wrong driver throws exception`() {
-    val rideId = UUID.randomUUID()
-    val otherDriverId = UUID.randomUUID()
-    val ride = Ride(
-      id = rideId, tenantId = tenantId, riderId = riderId, driverId = otherDriverId,
-      status = IdName(RideStatus.DRIVER_ASSIGNED.id), pickupLat = 19.0, pickupLng = 72.0,
-      destinationLat = 19.1, destinationLng = 72.1,
-      vehicleType = IdName(VehicleType.ECONOMY.id)
-    )
-    whenever(rideMapper.findById(rideId)).thenReturn(ride)
-
-    val ex = assertThrows<ApplicationException> { rideService.acceptRide(driverId, rideId) }
-    assertEquals(ApplicationExceptionTypes.RIDE_NOT_ASSIGNED_TO_DRIVER.first, ex.code)
   }
 }

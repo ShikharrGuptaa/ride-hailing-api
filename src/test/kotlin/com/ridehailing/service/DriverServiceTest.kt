@@ -57,7 +57,7 @@ class DriverServiceTest {
   }
 
   @Test
-  fun `createDriver - duplicate phone throws exception`() {
+  fun `createDriver - duplicate phone returns existing driver`() {
     val request = CreateDriverRequest(
       name = "Test Driver", phone = "9876543210",
       vehicleTypeId = VehicleType.ECONOMY.id, licensePlate = "MH01AB1234"
@@ -72,8 +72,10 @@ class DriverServiceTest {
     whenever(tenantService.getDefaultTenantId()).thenReturn(tenantId)
     whenever(driverMapper.findByPhoneAndTenant("9876543210", tenantId)).thenReturn(existingDriver)
 
-    val ex = assertThrows<ApplicationException> { driverService.createDriver(request) }
-    assertEquals(ApplicationExceptionTypes.DRIVER_ALREADY_EXISTS.first, ex.code)
+    val result = driverService.createDriver(request)
+    assertEquals(existingDriver.id, result.id)
+    assertEquals("Existing", result.name)
+    verify(driverMapper, never()).insert(any())
   }
 
   @Test

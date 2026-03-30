@@ -31,6 +31,7 @@ class TripServiceTest {
   @Mock lateinit var fareService: FareService
   @Mock lateinit var driverService: DriverService
   @Mock lateinit var redisTemplate: RedisTemplate<String, Any>
+  @Mock lateinit var rideEventService: RideEventService
 
   @InjectMocks lateinit var tripService: TripService
 
@@ -103,6 +104,7 @@ class TripServiceTest {
       totalFare = BigDecimal("96.00")
     )
     whenever(tripMapper.findById(tripId)).thenReturn(trip, completedTrip)
+    whenever(rideMapper.findById(rideId)).thenReturn(ride, ride)
 
     val result = tripService.endTrip(tripId, 19.100, 72.900)
     assertEquals(TripStatus.COMPLETED.id, result.status?.id)

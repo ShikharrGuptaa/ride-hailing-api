@@ -29,4 +29,6 @@ interface RideMapper {
   fun findActiveByDriverId(@Param("driverId") driverId: UUID): Ride?
 
   fun findAvailableByVehicleType(@Param("vehicleTypeId") vehicleTypeId: Int): List<Ride>
+
+  fun findStaleRides(): List<Ride>
 }
