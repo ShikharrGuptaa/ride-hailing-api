@@ -22,4 +22,6 @@ object ApplicationExceptionTypes {
   val GENERIC_EXCEPTION = Triple(99, HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong. Please try again later.")
   val DEFAULT_TENANT_NOT_FOUND = Triple(100, HttpStatus.INTERNAL_SERVER_ERROR, "Default tenant not found")
   val UNAUTHORIZED = Triple(101, HttpStatus.FORBIDDEN, "Unauthorized access")
+  val DRIVER_TOO_FAR = Triple(102, HttpStatus.UNPROCESSABLE_ENTITY, "Driver is too far from pickup location")
+  val REGION_MISMATCH = Triple(103, HttpStatus.UNPROCESSABLE_ENTITY, "Driver region does not match ride region")
 }

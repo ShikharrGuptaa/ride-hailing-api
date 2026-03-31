@@ -99,6 +99,11 @@ class DriverService(
     return drivers
   }
 
+  fun findCurrentLocation(driverId: UUID): DriverCurrentLocation? {
+    log.debug("findCurrentLocation - Looking up current location for driver: $driverId")
+    return driverMapper.findCurrentLocation(driverId)
+  }
+
   fun updateStatus(driverId: UUID, statusId: Int): Int {
     log.info("updateStatus - Setting driver $driverId statusId to $statusId")
     redisTemplate.delete("${Constant.Redis.DRIVER_CACHE_KEY}$driverId")

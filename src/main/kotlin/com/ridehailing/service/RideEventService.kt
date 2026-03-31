@@ -13,7 +13,12 @@ class RideEventService(
   private val log = LoggerFactory.getLogger(RideEventService::class.java)
 
   fun broadcastNewRide(ride: Ride) {
-    log.info("broadcastNewRide - Broadcasting new ride: ${ride.id}")
+    log.info("broadcastNewRide - Broadcasting new ride: ${ride.id}, regionId: ${ride.region?.id}")
+    // Broadcast to region-specific topic if ride has a region
+    if (ride.region?.id != null) {
+      messagingTemplate.convertAndSend("/topic/rides/available/region/${ride.region.id}", ride)
+    }
+    // Always broadcast to global topic (frontend filters by proximity)
     messagingTemplate.convertAndSend("/topic/rides/available", ride)
   }
 

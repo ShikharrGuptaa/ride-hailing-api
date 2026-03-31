@@ -29,9 +29,14 @@ class RideController(
 
   @Operation(summary = "Get available rides for drivers")
   @GetMapping(value = ["/available"], produces = [MediaType.APPLICATION_JSON_VALUE])
-  fun getAvailableRides(@RequestParam vehicleTypeId: Int): ApiResponse<List<Ride>> {
-    log.info("getAvailableRides - GET /rides/available?vehicleTypeId=$vehicleTypeId")
-    return ApiResponse.ok(rideService.findAvailableRides(vehicleTypeId))
+  fun getAvailableRides(
+    @RequestParam vehicleTypeId: Int,
+    @RequestParam driverLat: Double,
+    @RequestParam driverLng: Double,
+    @RequestParam(required = false) regionId: Int?
+  ): ApiResponse<List<Ride>> {
+    log.info("getAvailableRides - GET /rides/available?vehicleTypeId=$vehicleTypeId&driverLat=$driverLat&driverLng=$driverLng&regionId=$regionId")
+    return ApiResponse.ok(rideService.findAvailableRides(vehicleTypeId, driverLat, driverLng, regionId))
   }
 
   @Operation(summary = "Estimate fare for a ride")

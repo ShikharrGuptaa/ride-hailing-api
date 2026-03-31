@@ -197,8 +197,10 @@ Duration: Estimated from distance ÷ 25 km/h (average city speed)
 
 **Topics:**
 - `/topic/rides/available` — New ride requests broadcast to all drivers
+- `/topic/rides/available/region/{regionId}` — Region-specific ride broadcasts
 - `/topic/rides/{rideId}` — Ride status updates (for rider and driver)
 - `/topic/drivers/{driverId}/rides` — Driver-specific ride assignments
+- `/topic/drivers/{driverId}/payments` — Payment confirmations for driver
 
 **Events:**
 - New ride created → Broadcast to all online drivers
@@ -208,12 +210,30 @@ Duration: Estimated from distance ÷ 25 km/h (average city speed)
 
 ### 2.8 Driver Matching Algorithm
 
-1. Rider creates ride with pickup coordinates and vehicle type
+1. Rider creates ride with pickup coordinates, vehicle type, and optional region
 2. Ride stays as REQUESTED
-3. Online drivers poll `GET /rides/available?vehicleTypeId=X`
-4. Driver accepts → `assignDriver` with optimistic lock (`WHERE status_id = 201`)
-5. First driver to accept wins; others get CONCURRENT_MODIFICATION error
-6. Haversine-based nearby driver search available for future auto-matching
+3. Online drivers poll `GET /rides/available?vehicleTypeId=X&driverLat=Y&driverLng=Z&regionId=R`
+4. Backend filters rides within 10km of driver's location (Haversine in SQL)
+5. If driver has a `regionId`, only rides with matching or null region are returned
+6. Driver accepts → proximity check (must be within 15km of pickup) and region check enforced server-side
+7. `assignDriver` with optimistic lock (`WHERE status_id = 201`) — first driver to accept wins
+8. Others get CONCURRENT_MODIFICATION error
+9. Haversine-based nearby driver search available for future auto-matching
+
+#### Proximity & Region Filtering
+
+| Check | Where | Radius | Behavior |
+|-------|-------|--------|----------|
+| Ride visibility | `GET /rides/available` (SQL) | 10km | Only rides within 10km of driver shown |
+| Accept validation | `acceptRide` (service) | 15km | Driver must be within 15km to accept |
+| Region filter | `GET /rides/available` (SQL) | — | If driver has region, only matching/null-region rides shown |
+| Region validation | `acceptRide` (service) | — | If both ride and driver have region, must match |
+
+- Drivers with no region see all nearby rides regardless of ride region
+- Rides with no region can be accepted by any nearby driver
+- WebSocket broadcasts go to a global topic; frontend filters by proximity client-side
+- Region-specific WebSocket topic (`/topic/rides/available/region/{regionId}`) also available
+- Driver location is continuously tracked (30s interval) while online
 
 ### 2.9 Error Handling
 

@@ -85,11 +85,25 @@
   </select>
 
   <select id="findAvailableByVehicleType" resultMap="rideResultMap">
-    SELECT * FROM rides
+    SELECT *,
+      (6371 * acos(
+        cos(radians(#{driverLat})) * cos(radians(pickup_lat)) *
+        cos(radians(pickup_lng) - radians(#{driverLng})) +
+        sin(radians(#{driverLat})) * sin(radians(pickup_lat))
+      )) AS distance_km
+    FROM rides
     WHERE status_id = 201
       AND vehicle_type_id = #{vehicleTypeId}
       AND delete_info IS NULL
-    ORDER BY add_date ASC
+      AND (6371 * acos(
+        cos(radians(#{driverLat})) * cos(radians(pickup_lat)) *
+        cos(radians(pickup_lng) - radians(#{driverLng})) +
+        sin(radians(#{driverLat})) * sin(radians(pickup_lat))
+      )) &lt;= #{radiusKm}
+      <if test="regionId != null">
+        AND (region_id IS NULL OR region_id = #{regionId})
+      </if>
+    ORDER BY distance_km ASC
     LIMIT 10
   </select>
 

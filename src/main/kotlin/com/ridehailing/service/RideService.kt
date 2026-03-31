@@ -134,6 +134,25 @@ class RideService(
         "Expected REQUESTED(${RideStatus.REQUESTED.id}), got ${ride.status?.id}")
     }
 
+    // Validate driver proximity to pickup
+    val driver = driverService.findById(driverId)
+    val driverLocation = driverService.findCurrentLocation(driverId)
+    if (driverLocation != null) {
+      val distanceKm = haversineDistance(driverLocation.lat, driverLocation.lng, ride.pickupLat, ride.pickupLng)
+      if (distanceKm > Constant.DriverMatching.ACCEPT_RADIUS_KM) {
+        log.warn("acceptRide - Driver $driverId is ${distanceKm}km from pickup, exceeds ${Constant.DriverMatching.ACCEPT_RADIUS_KM}km limit")
+        throw ApplicationException(ApplicationExceptionTypes.DRIVER_TOO_FAR,
+          "Driver is ${String.format("%.1f", distanceKm)}km from pickup. Maximum allowed: ${Constant.DriverMatching.ACCEPT_RADIUS_KM}km")
+      }
+    }
+
+    // Validate region match if ride has a region
+    if (ride.region?.id != null && driver.region?.id != null && ride.region.id != driver.region.id) {
+      log.warn("acceptRide - Driver region ${driver.region.id} does not match ride region ${ride.region.id}")
+      throw ApplicationException(ApplicationExceptionTypes.REGION_MISMATCH,
+        "Driver region does not match ride region")
+    }
+
     // First driver to accept wins (optimistic lock via expectedStatus)
     val updated = rideMapper.assignDriver(rideId, driverId, RideStatus.DRIVER_ACCEPTED.id)
     if (updated == 0) {
@@ -169,9 +188,9 @@ class RideService(
     return acceptedRide
   }
 
-  fun findAvailableRides(vehicleTypeId: Int): List<Ride> {
-    log.info("findAvailableRides - Finding REQUESTED rides for vehicleTypeId: $vehicleTypeId")
-    return rideMapper.findAvailableByVehicleType(vehicleTypeId)
+  fun findAvailableRides(vehicleTypeId: Int, driverLat: Double, driverLng: Double, regionId: Int?): List<Ride> {
+    log.info("findAvailableRides - Finding REQUESTED rides for vehicleTypeId: $vehicleTypeId within ${Constant.DriverMatching.RIDE_VISIBILITY_RADIUS_KM}km of ($driverLat, $driverLng), regionId: $regionId")
+    return rideMapper.findAvailableByVehicleType(vehicleTypeId, driverLat, driverLng, Constant.DriverMatching.RIDE_VISIBILITY_RADIUS_KM, regionId)
   }
 
   fun getActiveRideForDriver(driverId: UUID): Ride? {
@@ -221,25 +240,13 @@ class RideService(
     return tripMapper.getDriverEarnings(driverId)
   }
 
-  private fun matchDriver(ride: Ride) {
-    log.info("matchDriver - Attempting to match driver for ride: ${ride.id}")
-
-    val nearbyDrivers = driverService.findNearbyAvailable(
-      ride.pickupLat, ride.pickupLng, ride.vehicleType?.id!!
-    )
-
-    if (nearbyDrivers.isEmpty()) {
-      log.warn("matchDriver - No available drivers found for ride: ${ride.id}")
-      return
-    }
-
-    val bestDriver = nearbyDrivers.first()
-    val assigned = rideMapper.assignDriver(ride.id!!, bestDriver.id!!, RideStatus.DRIVER_ASSIGNED.id)
-
-    if (assigned > 0) {
-      log.info("matchDriver - Assigned driver ${bestDriver.id} to ride ${ride.id}")
-    } else {
-      log.warn("matchDriver - Failed to assign driver to ride ${ride.id}")
-    }
+  private fun haversineDistance(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
+    val R = 6371.0
+    val dLat = Math.toRadians(lat2 - lat1)
+    val dLng = Math.toRadians(lng2 - lng1)
+    val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2)
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
 }
