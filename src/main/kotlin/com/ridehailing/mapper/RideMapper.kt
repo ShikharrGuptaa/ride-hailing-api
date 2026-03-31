@@ -37,4 +37,6 @@ interface RideMapper {
   ): List<Ride>
 
   fun findStaleRides(): List<Ride>
+
+  fun findUnacceptedRides(@Param("bufferSeconds") bufferSeconds: Long): List<Ride>
 }

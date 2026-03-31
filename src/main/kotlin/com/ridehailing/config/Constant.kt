@@ -14,6 +14,8 @@ object Constant {
     const val DEFAULT_SEARCH_RADIUS_KM = 5.0
     const val RIDE_VISIBILITY_RADIUS_KM = 10.0
     const val ACCEPT_RADIUS_KM = 15.0
+    const val AUTO_ASSIGN_RADIUS_KM = 10.0
+    const val AUTO_ASSIGN_BUFFER_SECONDS = 60L
     const val MAX_NEARBY_DRIVERS = 10
   }
 

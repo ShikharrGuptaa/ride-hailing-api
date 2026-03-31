@@ -249,4 +249,63 @@ class RideService(
       Math.sin(dLng / 2) * Math.sin(dLng / 2)
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
   }
+
+  @Transactional
+  fun autoAssignDriver(ride: Ride): Boolean {
+    log.info("autoAssignDriver - Attempting auto-assign for ride: ${ride.id}")
+
+    val nearbyDrivers = driverService.findNearbyAvailable(
+      ride.pickupLat, ride.pickupLng, ride.vehicleType?.id!!,
+      Constant.DriverMatching.AUTO_ASSIGN_RADIUS_KM
+    )
+
+    // Filter by region if ride has one
+    val eligible = if (ride.region?.id != null) {
+      nearbyDrivers.filter { it.region?.id == null || it.region.id == ride.region.id }
+    } else {
+      nearbyDrivers
+    }
+
+    if (eligible.isEmpty()) {
+      log.warn("autoAssignDriver - No eligible drivers found for ride: ${ride.id}")
+      return false
+    }
+
+    val bestDriver = eligible.first()
+    val assigned = rideMapper.assignDriver(ride.id!!, bestDriver.id!!, RideStatus.DRIVER_ACCEPTED.id)
+
+    if (assigned > 0) {
+      // Create trip
+      val trip = Trip(
+        tenantId = ride.tenantId,
+        region = ride.region,
+        rideId = ride.id,
+        driverId = bestDriver.id,
+        riderId = ride.riderId,
+        startLat = ride.pickupLat,
+        startLng = ride.pickupLng,
+        surgeMultiplier = ride.surgeMultiplier
+      )
+      tripMapper.insert(trip)
+
+      // Driver goes ON_TRIP
+      driverService.updateStatus(bestDriver.id, DriverStatus.ON_TRIP.id)
+
+      // Invalidate cache
+      redisTemplate.delete("${Constant.Redis.RIDE_CACHE_KEY}${ride.id}")
+
+      val acceptedRide = rideMapper.findById(ride.id)!!
+      rideEventService.broadcastRideUpdate(acceptedRide)
+
+      log.info("autoAssignDriver - Auto-assigned driver ${bestDriver.id} to ride ${ride.id}")
+      return true
+    }
+
+    log.warn("autoAssignDriver - Failed to assign driver to ride ${ride.id} (concurrent modification)")
+    return false
+  }
+
+  fun findUnacceptedRides(): List<Ride> {
+    return rideMapper.findUnacceptedRides(Constant.DriverMatching.AUTO_ASSIGN_BUFFER_SECONDS)
+  }
 }

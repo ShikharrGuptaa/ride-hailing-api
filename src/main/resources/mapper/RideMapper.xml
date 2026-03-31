@@ -114,4 +114,14 @@
       AND delete_info IS NULL
   </select>
 
+  <select id="findUnacceptedRides" resultMap="rideResultMap">
+    SELECT * FROM rides
+    WHERE status_id = 201
+      AND driver_id IS NULL
+      AND requested_at &lt; NOW() - (#{bufferSeconds} || ' seconds')::INTERVAL
+      AND requested_at &gt;= NOW() - INTERVAL '15 minutes'
+      AND delete_info IS NULL
+    ORDER BY requested_at ASC
+  </select>
+
 </mapper>
